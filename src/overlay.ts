@@ -158,6 +158,11 @@ function startTrack(m: Media) {
 }
 
 function onMedia(m: Media | null) {
+  if (!m || !m.playing) {
+    document.body.classList.add('is-paused');
+  } else {
+    document.body.classList.remove('is-paused');
+  }
   if (!m) {
     loadedKey = '';
     lyrics = null;
@@ -266,3 +271,49 @@ async function init() {
 }
 
 void init();
+
+// ---- media controls & drag-and-drop .lrc -------------------------------------
+$('prevBtn')?.addEventListener('click', () => void api.mediaControl('prev'));
+$('playBtn')?.addEventListener('click', () => void api.mediaControl('toggle'));
+$('nextBtn')?.addEventListener('click', () => void api.mediaControl('next'));
+
+document.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  document.body.classList.add('drag-over');
+});
+document.addEventListener('dragleave', () => {
+  document.body.classList.remove('drag-over');
+});
+document.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  document.body.classList.remove('drag-over');
+  const file = e.dataTransfer?.files[0];
+  if (!file || !file.name.endsWith('.lrc')) return;
+
+  const text = await file.text();
+  const parsedLines: { t: number; text: string }[] = [];
+  const regex = /\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/;
+
+  text.split('\n').forEach((line) => {
+    const match = regex.exec(line);
+    if (match) {
+      const m = parseInt(match[1], 10);
+      const s = parseInt(match[2], 10);
+      const ms = parseInt(match[3].padEnd(3, '0').slice(0, 3), 10);
+      parsedLines.push({ t: m * 60 + s + ms / 1000, text: match[4].trim() });
+    }
+  });
+
+  if (parsedLines.length > 0 && loadedKey) {
+    const customLyrics: Lyrics = {
+      lines: parsedLines,
+      instrumental: false,
+      source: 'manual',
+      title: file.name.replace('.lrc', ''),
+      artist: 'Local file',
+      duration: parsedLines[parsedLines.length - 1].t,
+    };
+    await api.applyLyrics(loadedKey, customLyrics);
+    toast('Custom .lrc applied!');
+  }
+});

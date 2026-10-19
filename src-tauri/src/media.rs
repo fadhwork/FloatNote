@@ -147,3 +147,23 @@ pub fn spawn(app: AppHandle) {
         }
     });
 }
+
+#[cfg(windows)]
+pub fn control(action: &str) {
+    use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager as Manager;
+    if let Ok(op) = Manager::RequestAsync() {
+        if let Ok(mgr) = op.get() {
+            if let Ok(session) = mgr.GetCurrentSession() {
+                match action {
+                    "toggle" => { let _ = session.TryTogglePlayPauseAsync(); }
+                    "next" => { let _ = session.TrySkipNextAsync(); }
+                    "prev" => { let _ = session.TrySkipPreviousAsync(); }
+                    _ => {}
+                }
+            }
+        }
+    }
+}
+
+#[cfg(not(windows))]
+pub fn control(_action: &str) {}

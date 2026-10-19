@@ -68,6 +68,7 @@ export const api = {
   applyLyrics: (key: string, lyrics: Lyrics) => invoke<void>('apply_lyrics', { key, lyrics }),
   openSettings: () => invoke<void>('open_settings'),
   hideSettings: () => invoke<void>('hide_settings'),
+  mediaControl: (action: 'toggle' | 'next' | 'prev') => invoke<void>('media_control', { action }),
   quit: () => invoke<void>('quit_app'),
 };
 

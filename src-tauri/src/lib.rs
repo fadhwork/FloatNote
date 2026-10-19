@@ -202,6 +202,11 @@ fn open_settings(app: AppHandle) {
 }
 
 #[tauri::command]
+fn media_control(action: String) {
+    media::control(&action);
+}
+
+#[tauri::command]
 fn quit_app(app: AppHandle) {
     app.exit(0);
 }
@@ -297,6 +302,7 @@ pub fn run() {
             apply_lyrics,
             open_settings,
             hide_settings,
+            media_control,
             quit_app
         ])
         .on_window_event(|window, event| {
