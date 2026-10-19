@@ -167,11 +167,6 @@ function startTrack(m: Media) {
 }
 
 function onMedia(m: Media | null) {
-  if (!m || !m.playing) {
-    document.body.classList.add('is-paused');
-  } else {
-    document.body.classList.remove('is-paused');
-  }
   if (!m) {
     loadedKey = '';
     lyrics = null;

@@ -176,15 +176,6 @@ button small { font-size: 10px; margin-left: 1px; }
   .line.cur { animation: none; }
 }
 
-/* Auto-dim when paused or stopped */
-body.is-paused {
-  opacity: 0.15;
-  transition: opacity 0.6s ease;
-}
-body.is-paused:hover,
-body.is-paused.reveal {
-  opacity: 1;
-}
 
 /* Drag & drop .lrc indicator */
 body.drag-over {
