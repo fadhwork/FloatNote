@@ -197,6 +197,11 @@ fn hide_settings(app: AppHandle) {
 }
 
 #[tauri::command]
+fn open_settings(app: AppHandle) {
+    open_settings_window(&app);
+}
+
+#[tauri::command]
 fn quit_app(app: AppHandle) {
     app.exit(0);
 }
