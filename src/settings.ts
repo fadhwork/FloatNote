@@ -42,7 +42,7 @@ app.innerHTML = `
   <div id="results"></div>
 </section>
 
-<footer><button id="hide">Hide to tray</button><button class="danger" id="quit">Quit</button></footer>
+<footer><button id="hide">Hide to tray</button><button class="danger" id="quit">Quit</button></footer><div class="author-footer">FloatNote · crafted by fadhlihsani</div>
 `;
 
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;

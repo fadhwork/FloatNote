@@ -1,67 +1,76 @@
 # FloatNote
 
-A floating, glass-style **synced lyrics overlay** for Windows. It follows whatever you are playing
-(Spotify desktop, YouTube / Spotify Web in your browser, Apple Music, …), shows the current line with a
-karaoke sweep, and can turn into a **click-through, Rainmeter-style HUD** that sits on top of your games and apps.
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078d4.svg?style=flat-square)](https://github.com/fadhwork/FloatNote)
+[![Release](https://img.shields.io/github/v/release/fadhwork/FloatNote?color=38bdf8&style=flat-square)](https://github.com/fadhwork/FloatNote/releases)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg?style=flat-square)](LICENSE)
+[![Author](https://img.shields.io/badge/author-fadhlihsani-lightgrey.svg?style=flat-square)](https://github.com/fadhwork)
 
-Single portable `FloatNote.exe` – no installer, no admin rights, no login, no API keys.
+A modern, transparent, click-through **synced lyrics HUD** for Windows. It detects whatever music you are playing, renders synchronized lyrics with a karaoke sweep, and floats unobtrusively over your apps and games.
 
-## Features
+Single portable `FloatNote.exe` — zero install, zero login, no telemetry.
 
-- **Auto-detects what's playing** via Windows' media controls (the same source as the volume flyout).
-- **Synced lyrics from [LRCLIB](https://lrclib.net)**, cached on disk so each song is fetched once. Wrong version? Search and pick another in Settings → Lyrics (remembered per song).
-- **Click-through lock**: clicks pass through the lyrics. Only three things stay interactive: the **drag handle** (top-right), the **resize corner** (bottom-right) and the **timing buttons**. Toggle with **Ctrl+Alt+L** or the tray icon.
-- **Fine timing**: ±0.05 s and ±0.1 s buttons (click the readout to reset). Saved **per song**.
-- **Resizable, always on top**, remembers size and position (and won't restore off-screen).
-- **Tray icon** keeps it out of the way: Settings, click-through, show/hide, reset position, quit. Closing Settings hides to the tray.
-- **Settings** (live preview): glass opacity 0–100 % (0 = pure floating text), text size − / +, font, alignment, 1/3/5 lines, text colour, sweep colour, outline colour and width, karaoke on/off.
-- No window border or outline.
+---
 
-## Get it
+## ✨ Features
 
-**[Download FloatNote.exe](https://github.com/fadhwork/FloatNote/releases/latest/download/FloatNote.exe)** (latest release), then just run it.
-Prefer a zip? Grab `FloatNote-portable.zip` from the [Releases page](https://github.com/fadhwork/FloatNote/releases). Checksums are in `sha256.txt`.
-Settings and the lyrics cache live in a `floatnote-data` folder next to the exe (delete the folder to reset).
-Requires the Microsoft Edge **WebView2 runtime**, which is already part of Windows 11 and up-to-date Windows 10.
+- **Universal Media Sync:** Automatically connects to Spotify, Apple Music, YouTube (Chrome, Edge, Firefox), Tidal, and VLC via Windows SMTC.
+- **Accurate Synced Lyrics:** Powered by [LRCLIB](https://lrclib.net) with local disk caching for instant playback.
+- **Dual Subtitles & Translation:** Automatic real-time English translation for non-English songs (J-Pop, K-Pop, anime OSTs, Spanish, etc.).
+- **Dynamic Accent Colors:** Samples the vibrant color palette from the current track's album art.
+- **Click-Through HUD:** Toggle with **Ctrl+Alt+L** to make the overlay click-through so it never interrupts gameplay or work.
+- **On-Hover Media Controls:** Quick **⏮ ⏯ ⏭** buttons and text size toggles appear right on the overlay.
+- **Smart Auto-Dim:** Smoothly fades down when music is paused, restoring instantly on playback.
+- **Drag & Drop `.lrc`:** Drag any custom or local `.lrc` file directly onto the HUD for immediate override.
+- **Extensive Styling:** Custom fonts, opacity, font size, stroke outlines, alignment, and line count (1, 3, or 5 lines).
 
-## Build it yourself
+---
 
-Needs [Node.js 20+](https://nodejs.org) and [Rust](https://rustup.rs) (MSVC toolchain).
+## 🚀 Download & Setup
+
+1. Grab **[`FloatNote.exe`](https://github.com/fadhwork/FloatNote/releases/latest)** from the latest release.
+2. Place it in any folder and run it.
+3. Start playing music in your preferred player or browser tab.
+
+> **Note:** FloatNote is fully portable. Settings and lyrics cache are stored in a small `floatnote-data` folder alongside the executable.
+
+---
+
+## ⌨️ Shortcuts & Controls
+
+| Shortcut / Action | Function |
+| :--- | :--- |
+| **Ctrl + Alt + L** | Toggle Click-Through Lock |
+| **Hover Overlay** | Reveal media controls, text sizing, and window controls |
+| **Drag Grip (Top-Right)** | Reposition the HUD |
+| **Resize Grip (Bottom-Right)** | Resize window dimensions |
+| **System Tray Icon** | Access Settings, toggle lyrics visibility, or reset position |
+
+---
+
+## 🛠️ Building from Source
+
+**Prerequisites:** [Node.js 20+](https://nodejs.org) and [Rust](https://rustup.rs) (MSVC toolchain).
 
 ```bat
+# One-click Windows build
 build-windows.bat
 ```
 
-or manually:
+Or manually:
 
-```bat
+```bash
 npm ci
-npm run app:build        :: -> src-tauri\target\release\floatnote.exe  (no installer is produced)
+npm run app:build
 ```
 
-**Publishing a release:** `git tag v1.1.0 && git push origin v1.1.0`. GitHub Actions builds on Windows and attaches
-`FloatNote.exe`, the zip and checksums to a new Release. Every push to `main` also uploads the same files as a build artifact.
+The compiled binary will be located in `src-tauri/target/release/floatnote.exe`.
 
-Develop with hot reload: `npm run app:dev`.
-Unit tests for the Rust logic: `cd src-tauri && cargo test`.
+---
 
-## How it's put together
+## 👤 Author
 
-| Part | Where | What it does |
-| --- | --- | --- |
-| Now-playing | `src-tauri/src/media.rs` | Windows SMTC poller, extrapolates the playback position |
-| Lyrics | `src-tauri/src/lyrics.rs`, `lrc.rs` | LRCLIB lookup, title cleanup, LRC parser, disk cache |
-| Click-through | `src-tauri/src/lib.rs` | ~30 Hz hit-test: window ignores the mouse unless the cursor is over a control |
-| Settings | `src-tauri/src/settings.rs` | Validated JSON, portable storage |
-| UI | `src/overlay.ts`, `src/settings.ts` | Small vanilla TypeScript, no framework (~35 KB) |
+Created and maintained by **fadhlihsani** ([@fadhwork](https://github.com/fadhwork)).
 
-## Notes
+## 📄 License
 
-- The "glass" is a tinted gradient with a soft sheen. Windows can't blur the desktop behind a transparent
-  webview without the janky acrylic API, so there is no real backdrop blur.
-- Songs with only unsynced lyrics on LRCLIB show a hint instead of lyrics.
-- A global shortcut is only registered if Ctrl+Alt+L isn't already taken by another app.
-
-## License
-
-Apache-2.0, see [LICENSE](LICENSE).
+Distributed under the **Apache-2.0** License. See [`LICENSE`](LICENSE) for details.
