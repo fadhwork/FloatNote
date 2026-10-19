@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FloatNote</title>
+  </head>
+  <body class="locked-off">
+    <div id="panel" class="panel"></div>
+    <main id="lyrics" aria-live="polite"></main>
+    <div id="status"></div>
+
+    <div id="toolbar" class="ctl" data-hit>
+      <button id="fontDown" title="Smaller text">A<small>−</small></button>
+      <button id="fontUp" title="Larger text">A<small>+</small></button>
+      <span class="sep"></span>
+      <button id="lock" title="Click-through (Ctrl+Alt+L to undo)">Lock</button>
+      <button id="gear" title="Settings">⚙</button>
+    </div>
+
+    <div id="handle" class="ctl" data-hit title="Drag to move">
+      <i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+
+    <div id="timing" class="ctl" data-hit>
+      <button data-d="-100" title="Lyrics 0.1 s later">−0.1</button>
+      <button data-d="-50" title="Lyrics 0.05 s later">−0.05</button>
+      <button id="offset" title="Click to reset">0.00s</button>
+      <button data-d="50" title="Lyrics 0.05 s sooner">+0.05</button>
+      <button data-d="100" title="Lyrics 0.1 s sooner">+0.1</button>
+    </div>
+
+    <div id="grip" class="ctl" data-hit title="Drag to resize"></div>
+    <div id="toast"></div>
+    <script type="module" src="/src/overlay.ts"></script>
+  </body>
+</html>

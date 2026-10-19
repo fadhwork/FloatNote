@@ -1,0 +1,177 @@
+:root {
+  --panel-alpha: 0.35;
+  --font-px: 30px;
+  --font-color: #fff;
+  --fill-color: #7dd3fc;
+  --font-family: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  --align: center;
+  --outline: none;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+  font-family: var(--font-family);
+}
+
+/* Glass: a tinted gradient with a soft sheen. No border, so there is never an outline. */
+.panel {
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  opacity: var(--panel-alpha);
+  transition: opacity 0.2s ease;
+  background:
+    radial-gradient(130% 100% at 0% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
+    radial-gradient(90% 80% at 100% 100%, rgba(125, 211, 252, 0.1), transparent 60%),
+    linear-gradient(160deg, rgba(46, 52, 72, 0.94), rgba(14, 16, 24, 0.97));
+}
+
+#lyrics {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.3em;
+  padding: 22px 40px;
+  overflow: hidden;
+  text-align: var(--align);
+}
+
+.line {
+  min-height: 1.25em;
+  line-height: 1.25;
+  color: var(--font-color);
+  text-shadow: var(--outline);
+  text-wrap: balance;
+  font-weight: 600;
+  transition: opacity 0.3s ease;
+}
+.line.near { font-size: calc(var(--font-px) * 0.68); opacity: 0.5; }
+.line.near.n2 { font-size: calc(var(--font-px) * 0.55); opacity: 0.3; }
+.line.cur { font-size: var(--font-px); font-weight: 700; animation: rise 0.28s ease-out; }
+
+.wrap { position: relative; display: inline-block; max-width: 100%; }
+.fill {
+  position: absolute;
+  inset: 0;
+  color: var(--fill-color);
+  clip-path: inset(0 100% 0 0);
+  pointer-events: none;
+}
+#lyrics.plain .line.cur .base { color: var(--fill-color); }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+#status {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-content: center;
+  padding: 0 40px;
+  text-align: center;
+  white-space: pre-line;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
+/* ---- controls: hidden until you hover them ---- */
+.ctl {
+  position: absolute;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  color: #fff;
+  font: 600 12px 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  background: rgba(20, 22, 32, 0.8);
+  border-radius: 999px;
+}
+body:not(.locked):hover .ctl,
+body.reveal .ctl { opacity: 1; }
+body.locked #toolbar { display: none; }
+
+button {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 999px;
+  text-align: center;
+  white-space: nowrap;
+  transition: background 0.12s ease;
+}
+button:hover { background: rgba(255, 255, 255, 0.16); }
+button:active { background: rgba(255, 255, 255, 0.26); }
+button small { font-size: 10px; margin-left: 1px; }
+
+#toolbar { top: 12px; left: 14px; display: flex; align-items: center; gap: 2px; padding: 3px; }
+#toolbar .sep { width: 1px; height: 14px; background: rgba(255, 255, 255, 0.2); margin: 0 3px; }
+
+#timing {
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+}
+#timing button { min-width: 46px; font-variant-numeric: tabular-nums; }
+#timing #offset { min-width: 62px; color: var(--fill-color); }
+
+#handle {
+  top: 12px;
+  right: 14px;
+  width: 38px;
+  height: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, 4px);
+  grid-template-rows: repeat(2, 4px);
+  gap: 4px;
+  place-content: center;
+  cursor: grab;
+}
+#handle i { width: 4px; height: 4px; border-radius: 50%; background: rgba(255, 255, 255, 0.85); }
+
+#grip {
+  right: 6px;
+  bottom: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 0 0 22px 0;
+  background: linear-gradient(135deg, transparent 52%, rgba(255, 255, 255, 0.75) 52% 60%, transparent 60% 72%, rgba(255, 255, 255, 0.75) 72% 80%, transparent 80%);
+  cursor: nwse-resize;
+}
+
+#toast {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translate(-50%, -8px);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(20, 22, 32, 0.9);
+  color: #fff;
+  font: 600 12px 'Segoe UI', system-ui, sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  white-space: nowrap;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .line.cur { animation: none; }
+}
