@@ -80,9 +80,7 @@ fn pick_best(list: &[Remote], duration_s: f64) -> Option<LyricsResult> {
         } else {
             0.0
         };
-        if diff > 15.0 {
-            continue; // probably a different version of the song
-        }
+        // Always prefer the candidate with closest duration, without prematurely discarding matches
         if best.as_ref().map_or(true, |(d, _)| diff < *d) {
             best = Some((diff, res));
         }
@@ -135,11 +133,21 @@ pub async fn fetch(
     if !first_artist.is_empty() {
         by_fields.push(("artist_name", first_artist.clone()));
     }
-    let attempts: Vec<Vec<(&str, String)>> = vec![
+    let mut attempts: Vec<Vec<(&str, String)>> = vec![
         by_fields,
         vec![("q", format!("{} {}", name, first_artist).trim().to_string())],
-        vec![("q", clean_title(&format!("{} {}", title, artist)))],
     ];
+    // Check if title is compound "Artist - Title" (common in YouTube / web players)
+    if let Some((comp_artist, comp_title)) = title.split_once(" - ") {
+        let ca = clean_artist(comp_artist);
+        let ct = clean_title(comp_title);
+        if !ca.is_empty() && !ct.is_empty() {
+            attempts.push(vec![("track_name", ct.clone()), ("artist_name", ca.clone())]);
+            attempts.push(vec![("q", format!("{} {}", ct, ca))]);
+        }
+    }
+    attempts.push(vec![("q", clean_title(&format!("{} {}", title, artist)))]);
+    attempts.push(vec![("q", name.clone())]);
     let mut any_ok = false;
     for params in attempts {
         match search_raw(client, &params).await {

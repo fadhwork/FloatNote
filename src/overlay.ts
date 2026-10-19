@@ -50,17 +50,40 @@ function setStatus(text: string) {
 }
 
 function build(idx: number) {
-  if (!lyrics) return;
+  if (!lyrics || !lyrics.lines || lyrics.lines.length === 0) return;
   const lines = lyrics.lines;
-  const half = (settings.lines - 1) / 2;
+  const lineCount = Number(settings?.lines) || 3;
+  const half = Math.floor((lineCount - 1) / 2);
   lyricsEl.classList.toggle('plain', !settings.karaoke);
   lyricsEl.replaceChildren();
   fillEl = null;
 
+  // Intro preview before the first line starts
+  if (idx < 0) {
+    const div = document.createElement('div');
+    div.className = 'line cur';
+    const wrap = document.createElement('span');
+    wrap.className = 'wrap';
+    const base = document.createElement('span');
+    base.className = 'base';
+    base.textContent = lines[0] ? `♪  ${lines[0].text || '...'}` : '♪';
+    wrap.append(base);
+    div.append(wrap);
+    lyricsEl.append(div);
+
+    if (half > 0 && lines[1]) {
+      const nextDiv = document.createElement('div');
+      nextDiv.className = 'line near n1';
+      nextDiv.textContent = lines[1].text || '';
+      lyricsEl.append(nextDiv);
+    }
+    return;
+  }
+
   for (let i = idx - half; i <= idx + half; i++) {
     const dist = Math.abs(i - idx);
     const line = lines[i];
-    const text = line ? line.text || '♪' : i === idx ? (lines[0] ? `♪ ${lines[0].text}` : '♪') : '';
+    const text = line ? line.text || '♪' : '';
     const div = document.createElement('div');
     div.className = dist === 0 ? 'line cur' : `line near n${dist}`;
 
@@ -69,19 +92,19 @@ function build(idx: number) {
       wrap.className = 'wrap';
       const base = document.createElement('span');
       base.className = 'base';
-      base.textContent = text;
+      base.textContent = text || '♪';
       wrap.append(base);
       if (settings.karaoke && line) {
         const fill = document.createElement('span');
         fill.className = 'fill';
-        fill.textContent = text;
+        fill.textContent = text || '♪';
         fill.setAttribute('aria-hidden', 'true');
         wrap.append(fill);
         fillEl = fill;
         const end = lines[i + 1]?.t ?? line.t + 4;
         const gap = Math.max(0.3, end - line.t);
         fillStart = line.t;
-        fillDur = Math.max(0.3, Math.min(gap * 0.9, Math.max(1.2, text.length * 0.085)));
+        fillDur = Math.max(0.3, Math.min(gap * 0.9, Math.max(1.2, (text || '♪').length * 0.085)));
       }
       div.append(wrap);
       if (settings.dualSubtitles && line?.sub && line.sub !== line.text) {
@@ -143,14 +166,17 @@ function setLyrics(r: Lyrics) {
   lyrics = r;
   shownSig = '';
   lyricsEl.replaceChildren();
-  if (r.instrumental) setStatus('♪  Instrumental');
-  else if (r.lines.length === 0) {
+  if (r.instrumental) {
+    setStatus('♪  Instrumental');
+  } else if (!r.lines || r.lines.length === 0) {
     const who = currentMedia ? `${currentMedia.title} — ${currentMedia.artist}` : 'this song';
     setStatus(`No synced lyrics found for\n${who}\n${diag()}\nOpen Settings → Lyrics to search manually.`);
+  } else {
+    setStatus('');
+    render();
   }
-  else setStatus('');
   syncLoop();
-  if (settings.dualSubtitles && r.lines.length > 0) {
+  if (settings.dualSubtitles && r.lines && r.lines.length > 0) {
     void fetchTranslation(loadedKey, r.lines);
   }
 }
@@ -176,7 +202,7 @@ function startTrack(m: Media) {
   loadedKey = m.key;
   lyrics = null;
   shownSig = '';
-  offsetMs = settings.offsets[m.key] ?? 0;
+  offsetMs = (settings?.offsets && settings.offsets[m.key]) ?? 0;
   showOffset();
   lyricsEl.replaceChildren();
   setStatus(`${m.title}\n${m.artist}\nFinding lyrics…`);
@@ -198,7 +224,7 @@ function onMedia(m: Media | null) {
   const expected = anchor.pos + (anchor.playing ? (now - anchor.at) / 1000 : 0);
   const trackChanged = m.key !== loadedKey;
   // Re-anchor only on real changes (seek, pause/play, new song) so the sweep never jitters.
-  if (trackChanged || m.playing !== anchor.playing || Math.abs(incoming - expected) > 0.3) {
+  if (trackChanged || m.playing !== anchor.playing || Math.abs(incoming - expected) > 1.2) {
     anchor = { pos: incoming, at: now, playing: m.playing };
   }
   if (trackChanged) { startTrack(m); if (settings.dynamicColor) void fetchAlbumArtColor(m); }
@@ -269,13 +295,14 @@ function applySettings(s: Settings, first = false) {
   document.body.classList.toggle('locked', s.clickThrough);
   shownSig = '';
   if (loadedKey && !offsetTimer) {
-    offsetMs = s.offsets[loadedKey] ?? 0;
+    offsetMs = (s?.offsets && s.offsets[loadedKey]) ?? 0;
     showOffset();
   }
   if (lockChanged) {
     toast(s.clickThrough ? 'Click-through on  ·  Ctrl+Alt+L or the tray icon to unlock' : 'Click-through off');
   }
   requestAnimationFrame(reportRegions);
+  render();
   syncLoop();
 }
 
@@ -406,3 +433,10 @@ async function fetchTranslation(curKey: string, lines: Lyrics['lines']) {
     // Graceful fallback
   }
 }
+
+window.addEventListener('error', (e) => {
+  console.error('FloatNote overlay error:', e.error || e.message);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('FloatNote unhandled promise:', e.reason);
+});

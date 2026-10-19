@@ -57,6 +57,7 @@ jobs:
           name: FloatNote-portable
           path: |
             FloatNote.exe
+            FloatNote-portable.zip
             sha256.txt
       - name: Publish release (tags like v1.1.0)
         if: startsWith(github.ref, 'refs/tags/v')

@@ -66,10 +66,11 @@ mod platform {
             let dt = self.last_poll.elapsed().as_millis() as i64;
             self.last_poll = Instant::now();
 
-            let (mut state, timeline_ok) = match read_session(mgr) {
+            let (mut state, mut timeline_ok) = match read_session(mgr) {
                 Ok(Some(found)) => found,
                 Ok(None) => {
                     self.clock_key.clear();
+                    self.clock_ms = 0;
                     return None;
                 }
                 Err(_) => {
@@ -80,10 +81,29 @@ mod platform {
 
             if self.clock_key != state.key {
                 self.clock_key = state.key.clone();
-                self.clock_ms = 0;
+                self.clock_ms = if timeline_ok && state.position_ms > 0 && (state.duration_ms == 0 || state.position_ms < state.duration_ms) {
+                    state.position_ms
+                } else {
+                    0
+                };
             } else if state.playing {
                 self.clock_ms += dt;
             }
+
+            // Timeline sanity checks:
+            // 1. If player reports position 0 continuously after 1.5s of playback, its timeline is inactive.
+            if state.playing && state.position_ms == 0 && self.clock_ms > 1500 {
+                timeline_ok = false;
+            }
+            // 2. If duration > 0 and position exceeds duration by > 3s, timeline is bogus.
+            if state.duration_ms > 0 && state.position_ms > state.duration_ms + 3000 {
+                timeline_ok = false;
+            }
+            // 3. If duration == 0 and position == 0, player has no timeline info.
+            if state.duration_ms == 0 && state.position_ms == 0 {
+                timeline_ok = false;
+            }
+
             if !timeline_ok {
                 state.position_ms = if state.duration_ms > 0 {
                     self.clock_ms.min(state.duration_ms)
