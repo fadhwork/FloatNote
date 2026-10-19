@@ -43,10 +43,30 @@ struct AppState {
     http: reqwest::Client,
 }
 
+impl AppState {
+    /// Built before the app starts, so `get_settings` & co. work the moment a window's script runs.
+    fn new() -> Self {
+        let data_dir = resolve_data_dir();
+        let settings = settings::load(&data_dir);
+        let http = reqwest::Client::builder()
+            .user_agent(lyrics::UA)
+            .timeout(Duration::from_secs(8))
+            .build()
+            .expect("failed to create the HTTP client");
+        AppState {
+            settings: Mutex::new(settings),
+            hit: Mutex::new(Vec::new()),
+            data_dir,
+            lock_item: Mutex::new(None),
+            http,
+        }
+    }
+}
+
 // ---- helpers ----------------------------------------------------------------
 
 /// Portable: keep data next to the exe. Fall back to the user profile if that folder is read-only.
-fn resolve_data_dir(app: &AppHandle) -> PathBuf {
+fn resolve_data_dir() -> PathBuf {
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
             let p = dir.join("floatnote-data");
@@ -59,10 +79,10 @@ fn resolve_data_dir(app: &AppHandle) -> PathBuf {
             }
         }
     }
-    let fallback = app
-        .path()
-        .app_data_dir()
-        .unwrap_or_else(|_| std::env::temp_dir().join("floatnote"));
+    let base = std::env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir);
+    let fallback = base.join("com.fadhlihsani.floatnote");
     let _ = std::fs::create_dir_all(&fallback);
     fallback
 }
@@ -369,6 +389,7 @@ fn spawn_window_loop(app: AppHandle) {
 
 pub fn run() {
     tauri::Builder::default()
+        .manage(AppState::new())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {
@@ -410,14 +431,7 @@ pub fn run() {
         })
         .setup(|app| {
             let handle = app.handle().clone();
-            let data_dir = resolve_data_dir(&handle);
-            let loaded = settings::load(&data_dir);
-
-            let http = reqwest::Client::builder()
-                .user_agent(lyrics::UA)
-                .timeout(Duration::from_secs(8))
-                .build()
-                .map_err(|e| e.to_string())?;
+            let loaded = app.state::<AppState>().settings.lock().unwrap().clone();
 
             // Tray ("hidden icon on the corner toolbar")
             let settings_i = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
@@ -474,13 +488,7 @@ pub fn run() {
             let saved_window = loaded.window.clone();
             let on_top = loaded.always_on_top;
 
-            app.manage(AppState {
-                settings: Mutex::new(loaded),
-                hit: Mutex::new(Vec::new()),
-                data_dir,
-                lock_item: Mutex::new(Some(lock_i)),
-                http,
-            });
+            *app.state::<AppState>().lock_item.lock().unwrap() = Some(lock_i);
 
             // Restore the overlay's size/position (only if it is still on a monitor).
             if let Some(win) = app.get_webview_window("main") {
