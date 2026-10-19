@@ -186,8 +186,14 @@ fn apply_lyrics(app: AppHandle, key: String, lyrics: LyricsResult) {
 }
 
 #[tauri::command]
-fn open_settings(app: AppHandle) {
-    open_settings_window(&app);
+fn hide_settings(app: AppHandle) {
+    if let Some(w) = app.get_webview_window("settings") {
+        let _ = w.hide();
+        let done = app.state::<AppState>().settings.lock().unwrap().first_run_done;
+        if !done {
+            let _ = apply_patch(&app, json!({ "firstRunDone": true }));
+        }
+    }
 }
 
 #[tauri::command]
