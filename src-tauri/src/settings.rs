@@ -130,10 +130,7 @@ pub fn load(dir: &Path) -> Settings {
 
 pub fn save(dir: &Path, s: &Settings) {
     let Ok(text) = serde_json::to_string_pretty(s) else { return };
-    let tmp = dir.join("settings.json.tmp");
-    if fs::write(&tmp, text).is_ok() {
-        let _ = fs::rename(&tmp, dir.join("settings.json"));
-    }
+    let _ = fs::write(dir.join("settings.json"), text);
 }
 
 #[cfg(test)]
