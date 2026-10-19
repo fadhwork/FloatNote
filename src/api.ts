@@ -67,6 +67,7 @@ export const api = {
   searchLyrics: (query: string) => invoke<Lyrics[]>('search_lyrics', { query }),
   applyLyrics: (key: string, lyrics: Lyrics) => invoke<void>('apply_lyrics', { key, lyrics }),
   openSettings: () => invoke<void>('open_settings'),
+  hideSettings: () => invoke<void>('hide_settings'),
   quit: () => invoke<void>('quit_app'),
 };
 
