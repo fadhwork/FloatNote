@@ -117,7 +117,7 @@ el('lines').addEventListener('click', (e) => {
 });
 
 el('resetOffset').addEventListener('click', () => media && void api.setOffset(media.key, 0));
-el('hide').addEventListener('click', () => void import('@tauri-apps/api/window').then((m) => m.getCurrentWindow().close()));
+el('hide').addEventListener('click', () => void api.hideSettings());
 el('quit').addEventListener('click', () => void api.quit());
 
 // ---- manual lyric search ----------------------------------------------------------
