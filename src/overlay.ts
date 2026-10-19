@@ -8,6 +8,7 @@ const lyricsEl = $('lyrics');
 const statusEl = $('status');
 const offsetEl = $('offset');
 const toastEl = $('toast');
+setStatus('FloatNote starting…');
 
 let settings: Settings;
 let lyrics: Lyrics | null = null;
@@ -318,7 +319,7 @@ async function init() {
   window.addEventListener('resize', reportRegions);
 }
 
-void init();
+init().catch((err) => setStatus(`Startup error: ${String(err).slice(0, 160)}`));
 
 // ---- media controls & drag-and-drop .lrc -------------------------------------
 $('prevBtn')?.addEventListener('click', () => void api.mediaControl('prev'));
@@ -436,7 +437,9 @@ async function fetchTranslation(curKey: string, lines: Lyrics['lines']) {
 
 window.addEventListener('error', (e) => {
   console.error('FloatNote overlay error:', e.error || e.message);
+  if (!lyrics || lyrics.lines.length === 0) setStatus(`Error: ${String(e.message).slice(0, 160)}`);
 });
 window.addEventListener('unhandledrejection', (e) => {
   console.error('FloatNote unhandled promise:', e.reason);
+  if (!lyrics || lyrics.lines.length === 0) setStatus(`Error: ${String(e.reason).slice(0, 160)}`);
 });
