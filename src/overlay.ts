@@ -9,26 +9,7 @@ const statusEl = $('status');
 const offsetEl = $('offset');
 const toastEl = $('toast');
 
-let settings: Settings = {
-  opacity: 35,
-  fontPx: 30,
-  fontColor: '#ffffff',
-  fillColor: '#7dd3fc',
-  outline: true,
-  outlineColor: '#000000',
-  outlineWidth: 2,
-  fontFamily: 'sans',
-  align: 'center',
-  lines: 3,
-  karaoke: true,
-  clickThrough: false,
-  alwaysOnTop: true,
-  firstRunDone: true,
-  dynamicColor: false,
-  dualSubtitles: true,
-  offsets: {},
-};
-
+let settings: Settings;
 let lyrics: Lyrics | null = null;
 let currentMedia: Media | null = null;
 let loadedKey = '';
@@ -43,14 +24,11 @@ let fillEl: HTMLElement | null = null;
 let fillStart = 0;
 let fillDur = 1;
 
-const position = () => {
-  const p = anchor.pos + (anchor.playing ? (performance.now() - anchor.at) / 1000 : 0) + offsetMs / 1000;
-  return Number.isFinite(p) ? p : 0;
-};
+const position = () =>
+  anchor.pos + (anchor.playing ? (performance.now() - anchor.at) / 1000 : 0) + offsetMs / 1000;
 
 /** Index of the last line whose start time is <= pos, or -1 before the first line. */
 function findIndex(lines: Lyrics['lines'], pos: number): number {
-  if (!lines || lines.length === 0) return -1;
   let lo = 0;
   let hi = lines.length - 1;
   let ans = -1;
@@ -69,44 +47,20 @@ function findIndex(lines: Lyrics['lines'], pos: number): number {
 function setStatus(text: string) {
   statusEl.textContent = text;
   statusEl.style.display = text ? 'grid' : 'none';
-  lyricsEl.style.display = text ? 'none' : 'flex';
 }
 
 function build(idx: number) {
-  if (!lyrics || !lyrics.lines || lyrics.lines.length === 0) return;
+  if (!lyrics) return;
   const lines = lyrics.lines;
-  const numLines = settings.lines || 3;
-  const half = (numLines - 1) / 2;
+  const half = (settings.lines - 1) / 2;
   lyricsEl.classList.toggle('plain', !settings.karaoke);
   lyricsEl.replaceChildren();
   fillEl = null;
 
-  // Before first line (idx === -1), show upcoming line 0 as preview
-  if (idx < 0) {
-    const div = document.createElement('div');
-    div.className = 'line cur';
-    const wrap = document.createElement('span');
-    wrap.className = 'wrap';
-    const base = document.createElement('span');
-    base.className = 'base';
-    base.textContent = lines[0] ? `♪  ${lines[0].text || ''}` : '♪';
-    wrap.append(base);
-    div.append(wrap);
-    lyricsEl.append(div);
-
-    if (half > 0 && lines[1]) {
-      const nextDiv = document.createElement('div');
-      nextDiv.className = 'line near n1';
-      nextDiv.textContent = lines[1].text || '';
-      lyricsEl.append(nextDiv);
-    }
-    return;
-  }
-
   for (let i = idx - half; i <= idx + half; i++) {
     const dist = Math.abs(i - idx);
     const line = lines[i];
-    const text = line ? line.text || '♪' : '';
+    const text = line ? line.text || '♪' : i === idx ? (lines[0] ? `♪ ${lines[0].text}` : '♪') : '';
     const div = document.createElement('div');
     div.className = dist === 0 ? 'line cur' : `line near n${dist}`;
 
@@ -115,12 +69,12 @@ function build(idx: number) {
       wrap.className = 'wrap';
       const base = document.createElement('span');
       base.className = 'base';
-      base.textContent = text || '♪';
+      base.textContent = text;
       wrap.append(base);
       if (settings.karaoke && line) {
         const fill = document.createElement('span');
         fill.className = 'fill';
-        fill.textContent = text || '♪';
+        fill.textContent = text;
         fill.setAttribute('aria-hidden', 'true');
         wrap.append(fill);
         fillEl = fill;
@@ -144,15 +98,15 @@ function build(idx: number) {
 }
 
 function render() {
-  if (!lyrics || !lyrics.lines || lyrics.lines.length === 0) return;
+  if (!lyrics || lyrics.lines.length === 0) return;
   const pos = position();
   const idx = findIndex(lyrics.lines, pos);
-  const sig = `${loadedKey}|${idx}|${settings.lines}|${settings.karaoke}|${settings.dualSubtitles}`;
+  const sig = `${loadedKey}|${idx}|${settings.lines}|${settings.karaoke}`;
   if (sig !== shownSig) {
     shownSig = sig;
     build(idx);
   }
-  if (fillEl && idx >= 0) {
+  if (fillEl) {
     const p = Math.min(1, Math.max(0, (pos - fillStart) / fillDur));
     fillEl.style.clipPath = `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`;
   }
@@ -188,19 +142,15 @@ function diag(): string {
 function setLyrics(r: Lyrics) {
   lyrics = r;
   shownSig = '';
-  if (r.instrumental) {
-    setStatus('♪  Instrumental');
-    lyricsEl.replaceChildren();
-  } else if (!r.lines || r.lines.length === 0) {
+  lyricsEl.replaceChildren();
+  if (r.instrumental) setStatus('♪  Instrumental');
+  else if (r.lines.length === 0) {
     const who = currentMedia ? `${currentMedia.title} — ${currentMedia.artist}` : 'this song';
     setStatus(`No synced lyrics found for\n${who}\n${diag()}\nOpen Settings → Lyrics to search manually.`);
-    lyricsEl.replaceChildren();
-  } else {
-    setStatus('');
-    render();
   }
+  else setStatus('');
   syncLoop();
-  if (settings.dualSubtitles && r.lines && r.lines.length > 0) {
+  if (settings.dualSubtitles && r.lines.length > 0) {
     void fetchTranslation(loadedKey, r.lines);
   }
 }
@@ -226,7 +176,7 @@ function startTrack(m: Media) {
   loadedKey = m.key;
   lyrics = null;
   shownSig = '';
-  offsetMs = (settings.offsets && settings.offsets[m.key]) ?? 0;
+  offsetMs = settings.offsets[m.key] ?? 0;
   showOffset();
   lyricsEl.replaceChildren();
   setStatus(`${m.title}\n${m.artist}\nFinding lyrics…`);
@@ -237,7 +187,6 @@ function onMedia(m: Media | null) {
   if (!m) {
     loadedKey = '';
     lyrics = null;
-    currentMedia = null;
     anchor.playing = false;
     lyricsEl.replaceChildren();
     setStatus('Play a song in Spotify, YouTube Music\nor any media player.');
@@ -245,17 +194,14 @@ function onMedia(m: Media | null) {
     return;
   }
   const now = performance.now();
-  const incoming = (m.positionMs ?? 0) / 1000;
+  const incoming = m.positionMs / 1000;
   const expected = anchor.pos + (anchor.playing ? (now - anchor.at) / 1000 : 0);
   const trackChanged = m.key !== loadedKey;
   // Re-anchor only on real changes (seek, pause/play, new song) so the sweep never jitters.
   if (trackChanged || m.playing !== anchor.playing || Math.abs(incoming - expected) > 0.3) {
     anchor = { pos: incoming, at: now, playing: m.playing };
   }
-  if (trackChanged) {
-    startTrack(m);
-    if (settings.dynamicColor) void fetchAlbumArtColor(m);
-  }
+  if (trackChanged) { startTrack(m); if (settings.dynamicColor) void fetchAlbumArtColor(m); }
   syncLoop();
 }
 
@@ -323,14 +269,13 @@ function applySettings(s: Settings, first = false) {
   document.body.classList.toggle('locked', s.clickThrough);
   shownSig = '';
   if (loadedKey && !offsetTimer) {
-    offsetMs = (s.offsets && s.offsets[loadedKey]) ?? 0;
+    offsetMs = s.offsets[loadedKey] ?? 0;
     showOffset();
   }
   if (lockChanged) {
     toast(s.clickThrough ? 'Click-through on  ·  Ctrl+Alt+L or the tray icon to unlock' : 'Click-through off');
   }
   requestAnimationFrame(reportRegions);
-  render();
   syncLoop();
 }
 
@@ -349,7 +294,6 @@ async function init() {
 void init();
 
 // ---- media controls & drag-and-drop .lrc -------------------------------------
-
 $('prevBtn')?.addEventListener('click', () => void api.mediaControl('prev'));
 $('playBtn')?.addEventListener('click', () => void api.mediaControl('toggle'));
 $('nextBtn')?.addEventListener('click', () => void api.mediaControl('next'));
@@ -396,46 +340,41 @@ document.addEventListener('drop', async (e) => {
 });
 
 // ---- Dynamic Accent Color & Dual Subtitles ---------------------------------
-
 function extractVibrantColor(url: string): Promise<string | null> {
   return new Promise((resolve) => {
-    try {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = 40;
-          canvas.height = 40;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return resolve(null);
-          ctx.drawImage(img, 0, 0, 40, 40);
-          const data = ctx.getImageData(0, 0, 40, 40).data;
-          let bestColor: string | null = null;
-          let bestScore = -1;
-          for (let i = 0; i < data.length; i += 16) {
-            const r = data[i], g = data[i + 1], b = data[i + 2];
-            const max = Math.max(r, g, b), min = Math.min(r, g, b);
-            const d = max - min;
-            const s = max === 0 ? 0 : d / max;
-            const l = (max + min) / 510;
-            if (l < 0.25 || l > 0.85) continue;
-            const score = s * (1 - Math.abs(l - 0.55));
-            if (score > bestScore) {
-              bestScore = score;
-              bestColor = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-            }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 40;
+        canvas.height = 40;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(null);
+        ctx.drawImage(img, 0, 0, 40, 40);
+        const data = ctx.getImageData(0, 0, 40, 40).data;
+        let bestColor: string | null = null;
+        let bestScore = -1;
+        for (let i = 0; i < data.length; i += 16) {
+          const r = data[i], g = data[i + 1], b = data[i + 2];
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
+          const d = max - min;
+          const s = max === 0 ? 0 : d / max;
+          const l = (max + min) / 510;
+          if (l < 0.25 || l > 0.85) continue;
+          const score = s * (1 - Math.abs(l - 0.55));
+          if (score > bestScore) {
+            bestScore = score;
+            bestColor = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
           }
-          resolve(bestColor);
-        } catch {
-          resolve(null);
         }
-      };
-      img.onerror = () => resolve(null);
-      img.src = url;
-    } catch {
-      resolve(null);
-    }
+        resolve(bestColor);
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
   });
 }
 
