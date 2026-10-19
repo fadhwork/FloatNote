@@ -1,0 +1,70 @@
+name: Build portable FloatNote.exe
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write # needed to attach the exe to a release on tags
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build
+      # Pure-logic Rust tests (LRC parser, settings) run without the Windows toolchain.
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Rust unit tests
+        run: |
+          mkdir -p /tmp/logic/src
+          cp src-tauri/src/lrc.rs src-tauri/src/settings.rs /tmp/logic/src/
+          printf 'pub mod lrc;\npub mod settings;\n' > /tmp/logic/src/lib.rs
+          printf '[package]\nname="logic"\nversion="0.0.0"\nedition="2021"\n[dependencies]\nserde={version="1",features=["derive"]}\nserde_json="1"\n' > /tmp/logic/Cargo.toml
+          cd /tmp/logic && cargo test
+
+  windows:
+    needs: checks
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: src-tauri }
+      - run: npm ci
+      - name: Build (no installer)
+        run: npm run app:build
+      - name: Package portable exe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist-portable | Out-Null
+          Copy-Item src-tauri/target/release/floatnote.exe FloatNote.exe
+          Compress-Archive FloatNote.exe FloatNote-portable.zip -Force
+          $lines = foreach ($f in 'FloatNote.exe','FloatNote-portable.zip') {
+            "$((Get-FileHash $f -Algorithm SHA256).Hash)  $f"
+          }
+          $lines | Out-File sha256.txt -Encoding ascii
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FloatNote-portable
+          path: |
+            FloatNote.exe
+            FloatNote-portable.zip
+            sha256.txt
+      - name: Publish release (tags like v1.1.0)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            FloatNote.exe
+            FloatNote-portable.zip
+            sha256.txt
