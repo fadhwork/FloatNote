@@ -291,6 +291,7 @@ pub fn run() {
             search_lyrics,
             apply_lyrics,
             open_settings,
+            hide_settings,
             quit_app
         ])
         .on_window_event(|window, event| {
