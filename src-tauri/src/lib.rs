@@ -214,7 +214,7 @@ async fn get_album_art(
 ) -> Result<Option<String>, String> {
     let client = state.http.clone();
     let query = format!("{} {}", title.trim(), artist.trim());
-    let resp = client
+    let resp = match client
         .get("https://itunes.apple.com/search")
         .query(&[
             ("term", query.as_str()),
@@ -223,13 +223,16 @@ async fn get_album_art(
         ])
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+    {
+        Ok(r) => r,
+        Err(_) => return Ok(None),
+    };
 
     if !resp.status().is_success() {
         return Ok(None);
     }
 
-    let val: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+    let val: serde_json::Value = resp.json().await.unwrap_or_default();
     let art = val
         .get("results")
         .and_then(|r| r.get(0))
@@ -245,8 +248,11 @@ async fn translate_lyrics(
     state: State<'_, AppState>,
     text: String,
 ) -> Result<String, String> {
+    if text.trim().is_empty() {
+        return Ok(String::new());
+    }
     let client = state.http.clone();
-    let resp = client
+    let resp = match client
         .get("https://translate.googleapis.com/translate_a/single")
         .query(&[
             ("client", "gtx"),
@@ -257,13 +263,20 @@ async fn translate_lyrics(
         ])
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+    {
+        Ok(r) => r,
+        Err(_) => return Ok(String::new()),
+    };
 
     if !resp.status().is_success() {
-        return Err(format!("Translation returned {}", resp.status()));
+        return Ok(String::new());
     }
 
-    let val: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+    let val: serde_json::Value = match resp.json().await {
+        Ok(v) => v,
+        Err(_) => return Ok(String::new()),
+    };
+
     if val.get(2).and_then(|v| v.as_str()) == Some("en") {
         return Ok(String::new());
     }
