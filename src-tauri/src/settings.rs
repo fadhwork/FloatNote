@@ -58,7 +58,7 @@ impl Default for Settings {
             click_through: false,
             always_on_top: true,
             first_run_done: false,
-            dynamic_color: true,
+            dynamic_color: false,
             dual_subtitles: true,
             window: None,
             offsets: HashMap::new(),
@@ -158,7 +158,7 @@ mod tests {
         let s: Settings = serde_json::from_str(r#"{"opacity": 10}"#).unwrap();
         assert_eq!(s.opacity, 10);
         assert_eq!(s.font_px, 30);
-        assert_eq!(s.dynamic_color, true);
+        assert_eq!(s.dynamic_color, false);
         assert_eq!(s.dual_subtitles, true);
     }
 }

@@ -59,7 +59,7 @@ function build(idx: number) {
   for (let i = idx - half; i <= idx + half; i++) {
     const dist = Math.abs(i - idx);
     const line = lines[i];
-    const text = line ? line.text || '♪' : i === idx ? '♪' : '';
+    const text = line ? line.text || '♪' : i === idx ? (lines[0] ? `♪ ${lines[0].text}` : '♪') : '';
     const div = document.createElement('div');
     div.className = dist === 0 ? 'line cur' : `line near n${dist}`;
 
@@ -269,7 +269,7 @@ async function init() {
   await on<Media | null>('media', onMedia);
   await on<boolean>('hover', (inside) => document.body.classList.toggle('reveal', inside));
   await on<{ key: string; lyrics: Lyrics }>('lyrics-override', (p) => {
-    if (p.key === loadedKey) setLyrics(p.lyrics);
+    loadedKey = p.key; setLyrics(p.lyrics);
   });
   window.addEventListener('resize', reportRegions);
 }

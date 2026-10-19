@@ -92,13 +92,23 @@ function showMedia() {
     : 'Start a song in Spotify, YouTube Music or any player';
 }
 
-const bind = <K extends keyof Settings>(id: string, key: K, read: (i: HTMLInputElement) => Settings[K]) =>
-  el<HTMLInputElement>(id).addEventListener('input', (e) => patch({ [key]: read(e.target as HTMLInputElement) } as Partial<Settings>));
+const bind = <K extends keyof Settings>(id: string, key: K, read: (i: HTMLInputElement) => Settings[K]) => {
+  const target = el<HTMLInputElement>(id);
+  const handler = () => patch({ [key]: read(target) } as Partial<Settings>);
+  target.addEventListener('input', handler);
+  target.addEventListener('change', handler);
+};
 
 bind('opacity', 'opacity', (i) => Number(i.value));
 bind('fontPx', 'fontPx', (i) => Number(i.value));
 bind('fontColor', 'fontColor', (i) => i.value);
-bind('fillColor', 'fillColor', (i) => i.value);
+bind('fillColor', 'fillColor', (i) => {
+  if (s && s.dynamicColor) {
+    el<HTMLInputElement>('dynamicColor').checked = false;
+    patch({ dynamicColor: false });
+  }
+  return i.value;
+}); // disableDynamicOnFill
 bind('outlineColor', 'outlineColor', (i) => i.value);
 bind('outlineWidth', 'outlineWidth', (i) => Number(i.value));
 bind('outline', 'outline', (i) => i.checked);
