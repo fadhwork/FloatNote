@@ -19,6 +19,8 @@ pub struct MediaState {
     pub playing: bool,
     pub position_ms: i64,
     pub duration_ms: i64,
+    /// "player" when the position comes from the player, "own" when FloatNote keeps its own clock.
+    pub clock: String,
 }
 
 fn make_key(title: &str, artist: &str) -> String {
@@ -28,7 +30,7 @@ fn make_key(title: &str, artist: &str) -> String {
 #[cfg(windows)]
 mod platform {
     use super::*;
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::time::{Instant, SystemTime, UNIX_EPOCH};
     use windows::Media::Control::{
         GlobalSystemMediaTransportControlsSessionManager as Manager,
         GlobalSystemMediaTransportControlsSessionPlaybackStatus as Status,
@@ -39,11 +41,21 @@ mod platform {
 
     pub struct Reader {
         mgr: Option<Manager>,
+        // FloatNote's own song clock. Some players (or some versions of them) report no
+        // usable timeline, so the position would be stuck at 0 and the lyrics never move.
+        clock_key: String,
+        clock_ms: i64,
+        last_poll: Instant,
     }
 
     impl Reader {
         pub fn new() -> Self {
-            Reader { mgr: None }
+            Reader {
+                mgr: None,
+                clock_key: String::new(),
+                clock_ms: 0,
+                last_poll: Instant::now(),
+            }
         }
 
         pub fn read(&mut self) -> Option<MediaState> {
@@ -51,38 +63,71 @@ mod platform {
                 self.mgr = Manager::RequestAsync().ok().and_then(|op| op.get().ok());
             }
             let mgr = self.mgr.as_ref()?;
-            match read_session(mgr) {
-                Ok(state) => state,
+            let dt = self.last_poll.elapsed().as_millis() as i64;
+            self.last_poll = Instant::now();
+
+            let (mut state, timeline_ok) = match read_session(mgr) {
+                Ok(Some(found)) => found,
+                Ok(None) => {
+                    self.clock_key.clear();
+                    return None;
+                }
                 Err(_) => {
                     self.mgr = None; // re-create next poll
-                    None
+                    return None;
                 }
+            };
+
+            if self.clock_key != state.key {
+                self.clock_key = state.key.clone();
+                self.clock_ms = 0;
+            } else if state.playing {
+                self.clock_ms += dt;
             }
+            if !timeline_ok {
+                state.position_ms = if state.duration_ms > 0 {
+                    self.clock_ms.min(state.duration_ms)
+                } else {
+                    self.clock_ms
+                };
+                state.clock = "own".into();
+            }
+            Some(state)
         }
     }
 
-    fn read_session(mgr: &Manager) -> windows::core::Result<Option<MediaState>> {
+    /// Returns the song plus whether the player's own timeline can be trusted.
+    fn read_session(mgr: &Manager) -> windows::core::Result<Option<(MediaState, bool)>> {
         let session = match mgr.GetCurrentSession() {
             Ok(s) => s,
             Err(_) => return Ok(None),
         };
         let props = session.TryGetMediaPropertiesAsync()?.get()?;
         let title = props.Title()?.to_string();
-        let artist = props.Artist()?.to_string();
         if title.trim().is_empty() {
             return Ok(None);
         }
-        let album = props.AlbumTitle()?.to_string();
+        // Everything below is optional: a failing property must never hide the song.
+        let artist = props.Artist().map(|s| s.to_string()).unwrap_or_default();
+        let album = props.AlbumTitle().map(|s| s.to_string()).unwrap_or_default();
         let source = session
             .SourceAppUserModelId()
             .map(|s| s.to_string())
             .unwrap_or_default();
+        let playing = session
+            .GetPlaybackInfo()
+            .and_then(|i| i.PlaybackStatus())
+            .map(|s| s == Status::Playing)
+            .unwrap_or(true);
 
-        let playing = session.GetPlaybackInfo()?.PlaybackStatus()? == Status::Playing;
-        let tl = session.GetTimelineProperties()?;
-        let duration_ticks = tl.EndTime()?.Duration - tl.StartTime()?.Duration;
-        let pos_ticks = tl.Position()?.Duration;
-        let updated = tl.LastUpdatedTime()?.UniversalTime;
+        let (duration_ticks, pos_ticks, updated) = match session.GetTimelineProperties() {
+            Ok(tl) => (
+                tl.EndTime().map(|t| t.Duration).unwrap_or(0) - tl.StartTime().map(|t| t.Duration).unwrap_or(0),
+                tl.Position().map(|t| t.Duration).unwrap_or(0),
+                tl.LastUpdatedTime().map(|t| t.UniversalTime).unwrap_or(0),
+            ),
+            Err(_) => (0, 0, 0),
+        };
 
         // SMTC reports the position at `updated`; extrapolate to "now" while playing.
         let now = (SystemTime::now()
@@ -94,22 +139,30 @@ mod platform {
         if elapsed > 12 * 3600 * 10_000_000 {
             elapsed = 0; // bogus timestamp from some players
         }
-        let mut position_ms = (pos_ticks + elapsed) / 10_000;
+        let position_ms = ((pos_ticks + elapsed) / 10_000).max(0);
         let duration_ms = (duration_ticks / 10_000).max(0);
-        if duration_ms > 0 {
-            position_ms = position_ms.min(duration_ms);
-        }
 
-        Ok(Some(MediaState {
-            key: make_key(&title, &artist),
-            title,
-            artist,
-            album,
-            source,
-            playing,
-            position_ms: position_ms.max(0),
-            duration_ms,
-        }))
+        // No timeline at all, or one that is clearly stale (position past the end of the song).
+        let mut timeline_ok = updated > 0 || pos_ticks > 0;
+        if duration_ms > 0 && position_ms > duration_ms + 3000 {
+            timeline_ok = false;
+        }
+        let position_ms = if duration_ms > 0 { position_ms.min(duration_ms) } else { position_ms };
+
+        Ok(Some((
+            MediaState {
+                key: make_key(&title, &artist),
+                title,
+                artist,
+                album,
+                source,
+                playing,
+                position_ms,
+                duration_ms,
+                clock: "player".into(),
+            },
+            timeline_ok,
+        )))
     }
 }
 

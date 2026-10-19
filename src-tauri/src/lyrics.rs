@@ -1,6 +1,6 @@
 //! LRCLIB client plus an on-disk cache so each song is only fetched once.
 
-use crate::lrc::{clean_title, parse_lrc, primary_artist, Line};
+use crate::lrc::{clean_artist, clean_title, parse_lrc, primary_artist, Line};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::{Path, PathBuf}};
 
@@ -90,7 +90,8 @@ fn pick_best(list: &[Remote], duration_s: f64) -> Option<LyricsResult> {
     best.map(|(_, r)| r)
 }
 
-/// Look a song up: exact match first, then fuzzy search.
+/// Look a song up: exact match first, then several fuzzy searches.
+/// A failing step never stops the next one; an error is only returned if every step failed.
 pub async fn fetch(
     client: &reqwest::Client,
     title: &str,
@@ -99,46 +100,63 @@ pub async fn fetch(
     duration_s: f64,
 ) -> Result<Option<LyricsResult>, String> {
     let cleaned = clean_title(title);
-    let name = if cleaned.is_empty() { title.to_string() } else { cleaned };
+    let name = if cleaned.is_empty() { title.trim().to_string() } else { cleaned };
+    let artist_clean = clean_artist(artist);
+    let first_artist = primary_artist(&artist_clean);
+    let mut last_err: Option<String> = None;
 
-    let mut q: Vec<(&str, String)> = vec![
-        ("track_name", name.clone()),
-        ("artist_name", artist.to_string()),
-    ];
-    if !album.is_empty() {
-        q.push(("album_name", album.to_string()));
-    }
-    if duration_s > 0.0 {
-        q.push(("duration", (duration_s.round() as i64).to_string()));
-    }
-    let resp = client
-        .get("https://lrclib.net/api/get")
-        .query(&q)
-        .send()
-        .await
-        .map_err(|e| format!("network error: {e}"))?;
-    if resp.status().is_success() {
-        if let Ok(r) = resp.json::<Remote>().await {
-            if let Some(res) = usable(&r) {
-                return Ok(Some(res));
+    // 1. Exact signature match (needs an artist).
+    if !first_artist.is_empty() {
+        let mut q: Vec<(&str, String)> = vec![
+            ("track_name", name.clone()),
+            ("artist_name", artist_clean.clone()),
+        ];
+        if !album.is_empty() {
+            q.push(("album_name", album.to_string()));
+        }
+        if duration_s > 0.0 {
+            q.push(("duration", (duration_s.round() as i64).to_string()));
+        }
+        match client.get("https://lrclib.net/api/get").query(&q).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                if let Ok(r) = resp.json::<Remote>().await {
+                    if let Some(res) = usable(&r) {
+                        return Ok(Some(res));
+                    }
+                }
             }
+            Ok(_) => {} // 404 etc: fall through to the searches
+            Err(e) => last_err = Some(format!("network error: {e}")),
         }
-    } else if resp.status().as_u16() != 404 {
-        return Err(format!("LRCLIB returned {}", resp.status()));
     }
 
-    let first_artist = primary_artist(artist);
+    // 2. Fuzzy searches, from most to least specific.
+    let mut by_fields: Vec<(&str, String)> = vec![("track_name", name.clone())];
+    if !first_artist.is_empty() {
+        by_fields.push(("artist_name", first_artist.clone()));
+    }
     let attempts: Vec<Vec<(&str, String)>> = vec![
-        vec![("track_name", name.clone()), ("artist_name", first_artist.clone())],
-        vec![("q", format!("{} {}", name, first_artist))],
+        by_fields,
+        vec![("q", format!("{} {}", name, first_artist).trim().to_string())],
+        vec![("q", clean_title(&format!("{} {}", title, artist)))],
     ];
+    let mut any_ok = false;
     for params in attempts {
-        let list = search_raw(client, &params).await?;
-        if let Some(best) = pick_best(&list, duration_s) {
-            return Ok(Some(best));
+        match search_raw(client, &params).await {
+            Ok(list) => {
+                any_ok = true;
+                if let Some(best) = pick_best(&list, duration_s) {
+                    return Ok(Some(best));
+                }
+            }
+            Err(e) => last_err = Some(e),
         }
     }
-    Ok(None)
+    if any_ok {
+        Ok(None)
+    } else {
+        Err(last_err.unwrap_or_else(|| "lyrics lookup failed".to_string()))
+    }
 }
 
 /// Free-text search used by the manual "pick the right lyrics" box.

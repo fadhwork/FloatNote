@@ -30,12 +30,14 @@ let settings: Settings = {
 };
 
 let lyrics: Lyrics | null = null;
+let currentMedia: Media | null = null;
 let loadedKey = '';
 let offsetMs = 0;
 let offsetTimer = 0;
 let anchor = { pos: 0, at: performance.now(), playing: false };
 let raf = 0;
 
+// What is currently drawn, so we only rebuild the DOM when the line changes.
 let shownSig = '';
 let fillEl: HTMLElement | null = null;
 let fillStart = 0;
@@ -172,6 +174,17 @@ function syncLoop() {
   }
 }
 
+/** One line that shows what FloatNote currently sees, so a failure is never silent. */
+function diag(): string {
+  if (!currentMedia) return '';
+  const pos = Math.max(0, position());
+  const mm = Math.floor(pos / 60);
+  const ss = String(Math.floor(pos % 60)).padStart(2, '0');
+  const app = currentMedia.source.replace(/\.exe$/i, '') || 'player';
+  const clock = currentMedia.clock === 'own' ? ' · own clock' : '';
+  return `${app} · ${anchor.playing ? 'playing' : 'paused'} · ${mm}:${ss}${clock}`;
+}
+
 function setLyrics(r: Lyrics) {
   lyrics = r;
   shownSig = '';
@@ -179,7 +192,8 @@ function setLyrics(r: Lyrics) {
     setStatus('♪  Instrumental');
     lyricsEl.replaceChildren();
   } else if (!r.lines || r.lines.length === 0) {
-    setStatus('No synced lyrics found for this song.\nOpen Settings → Lyrics to search manually.');
+    const who = currentMedia ? `${currentMedia.title} — ${currentMedia.artist}` : 'this song';
+    setStatus(`No synced lyrics found for\n${who}\n${diag()}\nOpen Settings → Lyrics to search manually.`);
     lyricsEl.replaceChildren();
   } else {
     setStatus('');
@@ -194,20 +208,21 @@ function setLyrics(r: Lyrics) {
 async function fetchLyrics(m: Media, attempt: number) {
   try {
     const r = await api.getLyrics(m);
+    if (m.key === loadedKey) setLyrics(r);
+  } catch (err) {
     if (m.key !== loadedKey) return;
-    setLyrics(r);
-  } catch {
-    if (m.key !== loadedKey) return;
+    const reason = String(err).slice(0, 140);
     if (attempt < 3) {
-      setStatus("Couldn't reach the lyrics service.\nRetrying…");
+      setStatus(`Lyrics lookup failed: ${reason}\nRetrying…\n${diag()}`);
       setTimeout(() => m.key === loadedKey && fetchLyrics(m, attempt + 1), 8000);
     } else {
-      setStatus("Couldn't reach the lyrics service.\nCheck your internet connection.");
+      setStatus(`Lyrics lookup failed: ${reason}\nCheck your internet connection.\n${diag()}`);
     }
   }
 }
 
 function startTrack(m: Media) {
+  currentMedia = m;
   loadedKey = m.key;
   lyrics = null;
   shownSig = '';
@@ -222,6 +237,7 @@ function onMedia(m: Media | null) {
   if (!m) {
     loadedKey = '';
     lyrics = null;
+    currentMedia = null;
     anchor.playing = false;
     lyricsEl.replaceChildren();
     setStatus('Play a song in Spotify, YouTube Music\nor any media player.');

@@ -140,6 +140,19 @@ pub fn clean_title(title: &str) -> String {
     out.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
+/// "Artist - Topic" / "ArtistVEVO" (YouTube channel names) -> "Artist"
+pub fn clean_artist(artist: &str) -> String {
+    let mut a = artist.trim().to_string();
+    for suffix in [" - topic", "vevo"] {
+        let n = suffix.len();
+        if a.len() > n && a.is_char_boundary(a.len() - n) && a[a.len() - n..].eq_ignore_ascii_case(suffix) {
+            a.truncate(a.len() - n);
+            a = a.trim().to_string();
+        }
+    }
+    a
+}
+
 /// "A, B & C" -> "A"
 pub fn primary_artist(artist: &str) -> String {
     artist
@@ -183,6 +196,14 @@ mod tests {
         assert_eq!(clean_title("Song (Part II)"), "Song (Part II)");
         assert_eq!(clean_title("Alive (Live at Wembley)"), "Alive");
         assert_eq!(clean_title("Alive"), "Alive");
+    }
+
+    #[test]
+    fn cleans_youtube_artist_names() {
+        assert_eq!(clean_artist("Coldplay - Topic"), "Coldplay");
+        assert_eq!(clean_artist("AdeleVEVO"), "Adele");
+        assert_eq!(clean_artist("Vevo"), "Vevo");
+        assert_eq!(clean_artist("Tulus"), "Tulus");
     }
 
     #[test]

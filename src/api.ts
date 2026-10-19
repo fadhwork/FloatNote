@@ -30,6 +30,8 @@ export interface Media {
   playing: boolean;
   positionMs: number;
   durationMs: number;
+  /** "player" = position reported by the player, "own" = FloatNote's own clock. */
+  clock?: string;
 }
 
 export interface Line {
