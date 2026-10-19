@@ -24,7 +24,7 @@ app.innerHTML = `
   <div class="row"><span class="lbl">Alignment</span><div class="ctl"><div class="seg" id="align"><button data-v="left">Left</button><button data-v="center">Center</button><button data-v="right">Right</button></div></div></div>
   <div class="row"><span class="lbl">Lines shown</span><div class="ctl"><div class="seg" id="lines"><button data-v="1">1</button><button data-v="3">3</button><button data-v="5">5</button></div></div></div>
   <div class="row"><label for="fontColor">Text colour</label><div class="ctl"><input id="fontColor" type="color" /></div></div>
-  <div class="row"><label for="karaoke">Karaoke sweep</label><div class="ctl"><input id="fillColor" type="color" aria-label="Sweep colour" /><label class="switch"><input id="karaoke" type="checkbox" /><span></span></label></div></div>
+  <div class="row"><label for="dynamicColor">Dynamic album accent</label><div class="ctl"><label class="switch"><input id="dynamicColor" type="checkbox" /><span></span></label></div></div>  <div class="row"><label for="karaoke">Karaoke sweep</label><div class="ctl"><input id="fillColor" type="color" aria-label="Sweep colour" /><label class="switch"><input id="karaoke" type="checkbox" /><span></span></label></div></div>
   <div class="row"><label for="outline">Text outline</label><div class="ctl"><input id="outlineColor" type="color" aria-label="Outline colour" /><input id="outlineWidth" type="range" min="0" max="6" step="0.5" style="max-width:90px" /><label class="switch"><input id="outline" type="checkbox" /><span></span></label></div></div>
 </section>
 
@@ -32,7 +32,7 @@ app.innerHTML = `
   <h2>Behaviour</h2>
   <div class="row"><label for="clickThrough">Click-through (lock)</label><div class="ctl"><label class="switch"><input id="clickThrough" type="checkbox" /><span></span></label></div></div>
   <p class="hint">While locked, clicks pass straight through the lyrics. Only the drag handle, resize corner and timing buttons respond. Press <b>Ctrl+Alt+L</b> or use the tray icon to unlock.</p>
-  <div class="row"><label for="onTop">Always on top</label><div class="ctl"><label class="switch"><input id="onTop" type="checkbox" /><span></span></label></div></div>
+  <div class="row"><label for="dualSubtitles">Dual subtitles (Translate)</label><div class="ctl"><label class="switch"><input id="dualSubtitles" type="checkbox" /><span></span></label></div></div>  <div class="row"><label for="onTop">Always on top</label><div class="ctl"><label class="switch"><input id="onTop" type="checkbox" /><span></span></label></div></div>
 </section>
 
 <section>
@@ -75,6 +75,8 @@ function sync() {
   el<HTMLInputElement>('outline').checked = s.outline;
   el<HTMLInputElement>('karaoke').checked = s.karaoke;
   el<HTMLInputElement>('clickThrough').checked = s.clickThrough;
+  el<HTMLInputElement>('dynamicColor').checked = s.dynamicColor;
+  el<HTMLInputElement>('dualSubtitles').checked = s.dualSubtitles;
   el<HTMLInputElement>('onTop').checked = s.alwaysOnTop;
   for (const [id, cur] of [['align', s.align], ['lines', String(s.lines)]] as const) {
     el(id).querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === cur));
@@ -103,6 +105,8 @@ bind('outline', 'outline', (i) => i.checked);
 bind('karaoke', 'karaoke', (i) => i.checked);
 bind('clickThrough', 'clickThrough', (i) => i.checked);
 bind('onTop', 'alwaysOnTop', (i) => i.checked);
+bind('dynamicColor', 'dynamicColor', (i) => i.checked);
+bind('dualSubtitles', 'dualSubtitles', (i) => i.checked);
 el<HTMLSelectElement>('fontFamily').addEventListener('change', (e) =>
   patch({ fontFamily: (e.target as HTMLSelectElement).value as Settings['fontFamily'] }));
 el('fontMinus').addEventListener('click', () => patch({ fontPx: Math.max(12, s.fontPx - 2) }));

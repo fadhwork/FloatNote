@@ -83,6 +83,12 @@ function build(idx: number) {
         fillDur = Math.max(0.3, Math.min(gap * 0.9, Math.max(1.2, text.length * 0.085)));
       }
       div.append(wrap);
+      if (settings.dualSubtitles && line?.sub && line.sub !== line.text) {
+        const subDiv = document.createElement('div');
+        subDiv.className = 'sub-line';
+        subDiv.textContent = line.sub;
+        div.append(subDiv);
+      }
     } else {
       div.textContent = text;
     }
@@ -129,6 +135,9 @@ function setLyrics(r: Lyrics) {
   else if (r.lines.length === 0) setStatus('No synced lyrics found for this song.\nOpen Settings → Lyrics to search manually.');
   else setStatus('');
   syncLoop();
+  if (settings.dualSubtitles && r.lines.length > 0) {
+    void fetchTranslation(loadedKey, r.lines);
+  }
 }
 
 async function fetchLyrics(m: Media, attempt: number) {
@@ -180,7 +189,7 @@ function onMedia(m: Media | null) {
   if (trackChanged || m.playing !== anchor.playing || Math.abs(incoming - expected) > 0.3) {
     anchor = { pos: incoming, at: now, playing: m.playing };
   }
-  if (trackChanged) startTrack(m);
+  if (trackChanged) { startTrack(m); if (settings.dynamicColor) void fetchAlbumArtColor(m); }
   syncLoop();
 }
 
@@ -317,3 +326,71 @@ document.addEventListener('drop', async (e) => {
     toast('Custom .lrc applied!');
   }
 });
+
+// ---- Dynamic Accent Color & Dual Subtitles ---------------------------------
+function extractVibrantColor(url: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 40;
+        canvas.height = 40;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(null);
+        ctx.drawImage(img, 0, 0, 40, 40);
+        const data = ctx.getImageData(0, 0, 40, 40).data;
+        let bestColor: string | null = null;
+        let bestScore = -1;
+        for (let i = 0; i < data.length; i += 16) {
+          const r = data[i], g = data[i + 1], b = data[i + 2];
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
+          const d = max - min;
+          const s = max === 0 ? 0 : d / max;
+          const l = (max + min) / 510;
+          if (l < 0.25 || l > 0.85) continue;
+          const score = s * (1 - Math.abs(l - 0.55));
+          if (score > bestScore) {
+            bestScore = score;
+            bestColor = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+          }
+        }
+        resolve(bestColor);
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+async function fetchAlbumArtColor(m: Media) {
+  try {
+    const artUrl = await api.getAlbumArt(m.title, m.artist);
+    if (!artUrl || m.key !== loadedKey) return;
+    const color = await extractVibrantColor(artUrl);
+    if (color && m.key === loadedKey) {
+      document.documentElement.style.setProperty('--fill-color', color);
+    }
+  } catch {
+    // Fallback to default fillColor
+  }
+}
+
+async function fetchTranslation(curKey: string, lines: Lyrics['lines']) {
+  try {
+    const rawText = lines.map((l) => l.text).join('\n');
+    const translated = await api.translateLyrics(rawText);
+    if (!translated || curKey !== loadedKey || !lyrics) return;
+    const transLines = translated.split('\n');
+    lyrics.lines.forEach((l, i) => {
+      l.sub = transLines[i]?.trim() || '';
+    });
+    shownSig = '';
+    render();
+  } catch {
+    // Graceful fallback
+  }
+}

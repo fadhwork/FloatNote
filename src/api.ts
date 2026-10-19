@@ -16,6 +16,8 @@ export interface Settings {
   clickThrough: boolean;
   alwaysOnTop: boolean;
   firstRunDone: boolean;
+  dynamicColor: boolean;
+  dualSubtitles: boolean;
   offsets: Record<string, number>;
 }
 
@@ -33,6 +35,7 @@ export interface Media {
 export interface Line {
   t: number;
   text: string;
+  sub?: string;
 }
 
 export interface Lyrics {
@@ -69,6 +72,8 @@ export const api = {
   openSettings: () => invoke<void>('open_settings'),
   hideSettings: () => invoke<void>('hide_settings'),
   mediaControl: (action: 'toggle' | 'next' | 'prev') => invoke<void>('media_control', { action }),
+  getAlbumArt: (title: string, artist: string) => invoke<string | null>('get_album_art', { title, artist }),
+  translateLyrics: (text: string) => invoke<string>('translate_lyrics', { text }),
   quit: () => invoke<void>('quit_app'),
 };
 

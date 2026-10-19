@@ -34,6 +34,8 @@ pub struct Settings {
     pub click_through: bool,
     pub always_on_top: bool,
     pub first_run_done: bool,
+    pub dynamic_color: bool,
+    pub dual_subtitles: bool,
     pub window: Option<Geometry>,
     /// Per-song timing offsets in milliseconds, keyed by "title|artist".
     pub offsets: HashMap<String, i64>,
@@ -56,6 +58,8 @@ impl Default for Settings {
             click_through: false,
             always_on_top: true,
             first_run_done: false,
+            dynamic_color: true,
+            dual_subtitles: true,
             window: None,
             offsets: HashMap::new(),
         }
@@ -154,5 +158,7 @@ mod tests {
         let s: Settings = serde_json::from_str(r#"{"opacity": 10}"#).unwrap();
         assert_eq!(s.opacity, 10);
         assert_eq!(s.font_px, 30);
+        assert_eq!(s.dynamic_color, true);
+        assert_eq!(s.dual_subtitles, true);
     }
 }

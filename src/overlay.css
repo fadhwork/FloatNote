@@ -191,3 +191,15 @@ body.drag-over {
   outline: 2px dashed var(--fill-color);
   outline-offset: -4px;
 }
+
+/* Dual subtitle translation */
+.sub-line {
+  display: block;
+  font-size: calc(var(--font-px) * 0.48);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  margin-top: 4px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.015em;
+  line-height: 1.25;
+}

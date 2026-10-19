@@ -207,6 +207,79 @@ fn media_control(action: String) {
 }
 
 #[tauri::command]
+async fn get_album_art(
+    state: State<'_, AppState>,
+    title: String,
+    artist: String,
+) -> Result<Option<String>, String> {
+    let client = state.http.clone();
+    let query = format!("{} {}", title.trim(), artist.trim());
+    let resp = client
+        .get("https://itunes.apple.com/search")
+        .query(&[
+            ("term", query.as_str()),
+            ("entity", "song"),
+            ("limit", "1"),
+        ])
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !resp.status().is_success() {
+        return Ok(None);
+    }
+
+    let val: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+    let art = val
+        .get("results")
+        .and_then(|r| r.get(0))
+        .and_then(|item| item.get("artworkUrl100"))
+        .and_then(|url| url.as_str())
+        .map(|url| url.replace("100x100bb", "600x600bb"));
+
+    Ok(art)
+}
+
+#[tauri::command]
+async fn translate_lyrics(
+    state: State<'_, AppState>,
+    text: String,
+) -> Result<String, String> {
+    let client = state.http.clone();
+    let resp = client
+        .get("https://translate.googleapis.com/translate_a/single")
+        .query(&[
+            ("client", "gtx"),
+            ("sl", "auto"),
+            ("tl", "en"),
+            ("dt", "t"),
+            ("q", text.as_str()),
+        ])
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Translation returned {}", resp.status()));
+    }
+
+    let val: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+    if val.get(2).and_then(|v| v.as_str()) == Some("en") {
+        return Ok(String::new());
+    }
+
+    let mut out = String::new();
+    if let Some(chunks) = val.get(0).and_then(|v| v.as_array()) {
+        for chunk in chunks {
+            if let Some(seg) = chunk.get(0).and_then(|v| v.as_str()) {
+                out.push_str(seg);
+            }
+        }
+    }
+    Ok(out)
+}
+
+#[tauri::command]
 fn quit_app(app: AppHandle) {
     app.exit(0);
 }
@@ -303,6 +376,8 @@ pub fn run() {
             open_settings,
             hide_settings,
             media_control,
+            get_album_art,
+            translate_lyrics,
             quit_app
         ])
         .on_window_event(|window, event| {
