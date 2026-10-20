@@ -153,6 +153,25 @@ pub fn clean_artist(artist: &str) -> String {
     a
 }
 
+fn words(s: &str) -> Vec<String> {
+    s.to_lowercase()
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .map(String::from)
+        .collect()
+}
+
+/// 0.0..=1.0: how many of the shorter title's words also appear in the other title.
+pub fn title_similarity(a: &str, b: &str) -> f64 {
+    let (wa, wb) = (words(a), words(b));
+    if wa.is_empty() || wb.is_empty() {
+        return 0.0;
+    }
+    let (short, long) = if wa.len() <= wb.len() { (&wa, &wb) } else { (&wb, &wa) };
+    let hits = short.iter().filter(|w| long.contains(*w)).count();
+    hits as f64 / short.len() as f64
+}
+
 /// "A, B & C" -> "A"
 pub fn primary_artist(artist: &str) -> String {
     artist
@@ -204,6 +223,15 @@ mod tests {
         assert_eq!(clean_artist("AdeleVEVO"), "Adele");
         assert_eq!(clean_artist("Vevo"), "Vevo");
         assert_eq!(clean_artist("Tulus"), "Tulus");
+    }
+
+    #[test]
+    fn title_similarity_works() {
+        assert_eq!(title_similarity("Hati-Hati di Jalan", "hati hati di jalan"), 1.0);
+        assert!(title_similarity("Hati-Hati di Jalan", "Hati Hati Di Jalan (Live)") >= 0.99);
+        assert!(title_similarity("Home", "Welcome Home") >= 0.99); // short vs long: needs the artist/duration check too
+        assert!(title_similarity("Sandiwara Cinta", "Different Song Entirely") < 0.5);
+        assert_eq!(title_similarity("", "x"), 0.0);
     }
 
     #[test]

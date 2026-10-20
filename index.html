@@ -12,11 +12,7 @@
 
     <div id="toolbar" class="ctl" data-hit>
       <button id="prevBtn" title="Previous track">⏮</button>
-      <button id="playBtn" title="Play / Pause">⏯</button>
       <button id="nextBtn" title="Next track">⏭</button>
-      <span class="sep"></span>
-      <button id="fontDown" title="Smaller text">A<small>−</small></button>
-      <button id="fontUp" title="Larger text">A<small>+</small></button>
       <span class="sep"></span>
       <button id="lock" title="Click-through (Ctrl+Alt+L to undo)">Lock</button>
       <button id="gear" title="Settings">⚙</button>
@@ -27,11 +23,13 @@
     </div>
 
     <div id="timing" class="ctl" data-hit>
-      <button data-d="-100" title="Lyrics 0.1 s later">−0.1</button>
-      <button data-d="-50" title="Lyrics 0.05 s later">−0.05</button>
-      <button id="offset" title="Click to reset">0.00s</button>
-      <button data-d="50" title="Lyrics 0.05 s sooner">+0.05</button>
-      <button data-d="100" title="Lyrics 0.1 s sooner">+0.1</button>
+      <button id="playBtn" title="Play / Pause">⏯</button>
+      <span class="sep"></span>
+      <button data-d="-3000" title="Lyrics 3 s later">−3s</button>
+      <button data-d="-1000" title="Lyrics 1 s later">−1s</button>
+      <button id="offset" title="Click to reset to 0">0</button>
+      <button data-d="1000" title="Lyrics 1 s sooner">+1s</button>
+      <button data-d="3000" title="Lyrics 3 s sooner">+3s</button>
     </div>
 
     <div id="grip" class="ctl" data-hit title="Drag to resize"></div>

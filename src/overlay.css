@@ -128,8 +128,11 @@ button small { font-size: 10px; margin-left: 1px; }
   gap: 2px;
   padding: 3px;
 }
-#timing button { min-width: 46px; font-variant-numeric: tabular-nums; }
-#timing #offset { min-width: 62px; color: var(--fill-color); }
+#timing { align-items: center; }
+#timing button { min-width: 44px; font-variant-numeric: tabular-nums; }
+#timing #playBtn { min-width: 38px; }
+#timing #offset { min-width: 56px; color: var(--fill-color); }
+#timing .sep { width: 1px; height: 14px; background: rgba(255, 255, 255, 0.2); margin: 0 3px; }
 
 #handle {
   top: 12px;

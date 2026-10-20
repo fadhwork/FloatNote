@@ -112,10 +112,9 @@ function sync() {
   el<HTMLInputElement>('fontPx').value = String(s.fontPx);
   el<HTMLSelectElement>('fontFamily').value = s.fontFamily;
   
-  // Only update color inputs if the user is not actively picking/eyedropping them
-  if (document.activeElement !== el('fontColor')) el<HTMLInputElement>('fontColor').value = s.fontColor;
-  if (document.activeElement !== el('fillColor')) el<HTMLInputElement>('fillColor').value = s.fillColor;
-  if (document.activeElement !== el('outlineColor')) el<HTMLInputElement>('outlineColor').value = s.outlineColor;
+  setColor('fontColor', s.fontColor);
+  setColor('fillColor', s.fillColor);
+  setColor('outlineColor', s.outlineColor);
 
   el<HTMLInputElement>('outlineWidth').value = String(s.outlineWidth);
   el<HTMLInputElement>('outline').checked = s.outline;
@@ -149,19 +148,40 @@ const bind = <K extends keyof Settings>(id: string, key: K, read: (i: HTMLInputE
 bind('opacity', 'opacity', (i) => Number(i.value));
 bind('fontPx', 'fontPx', (i) => Number(i.value));
 
+// While the colour popup / eyedropper is in use, settings echoes from the backend are stale
+// (they carry colours from a moment ago). Writing them back into the input resets the picker,
+// so colour inputs are left alone until ~0.6 s after the last change.
+const colorBusyUntil: Record<string, number> = {};
+
+function setColor(id: string, value: string) {
+  if (performance.now() < (colorBusyUntil[id] ?? 0)) return;
+  const input = el<HTMLInputElement>(id);
+  if (input.value.toLowerCase() !== value.toLowerCase()) input.value = value;
+}
+
 const bindColor = (id: string, key: 'fontColor' | 'fillColor' | 'outlineColor') => {
-  const target = el<HTMLInputElement>(id);
-  const handler = () => {
+  const input = el<HTMLInputElement>(id);
+  let timer = 0;
+  const send = () => {
+    clearTimeout(timer);
+    timer = 0;
     if (key === 'fillColor' && s && s.dynamicColor) {
       s.dynamicColor = false;
       el<HTMLInputElement>('dynamicColor').checked = false;
-      patch({ dynamicColor: false, fillColor: target.value });
+      patch({ dynamicColor: false, fillColor: input.value });
       return;
     }
-    patch({ [key]: target.value });
+    patch({ [key]: input.value });
   };
-  target.addEventListener('input', handler);
-  target.addEventListener('change', handler);
+  // The eyedropper fires `input` on every mouse move: send at most ~8 updates per second.
+  input.addEventListener('input', () => {
+    colorBusyUntil[id] = performance.now() + 600;
+    if (!timer) timer = window.setTimeout(send, 120);
+  });
+  input.addEventListener('change', () => {
+    colorBusyUntil[id] = performance.now() + 600;
+    send();
+  });
 };
 
 bindColor('fontColor', 'fontColor');

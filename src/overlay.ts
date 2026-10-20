@@ -171,7 +171,7 @@ function setLyrics(r: Lyrics) {
     setStatus('♪  Instrumental');
   } else if (!r.lines || r.lines.length === 0) {
     const who = currentMedia ? `${currentMedia.title} — ${currentMedia.artist}` : 'this song';
-    setStatus(`No synced lyrics found for\n${who}\n${diag()}\nOpen Settings → Lyrics to search manually.`);
+    setStatus(`Couldn't find synced lyrics automatically for\n${who}\n${diag()}\nYou can pick a version in Settings → Lyrics.`);
   } else {
     setStatus('');
     render();
@@ -236,7 +236,7 @@ function onMedia(m: Media | null) {
 
 function showOffset() {
   const s = offsetMs / 1000;
-  offsetEl.textContent = `${s > 0 ? '+' : ''}${s.toFixed(2)}s`;
+  offsetEl.textContent = offsetMs === 0 ? '0' : `${s > 0 ? '+' : ''}${+s.toFixed(2)}s`;
 }
 
 function adjust(deltaMs: number) {
@@ -257,7 +257,7 @@ $('timing').addEventListener('click', (e) => {
   const btn = (e.target as HTMLElement).closest('button');
   if (!btn) return;
   if (btn.id === 'offset') adjust(0);
-  else adjust(Number(btn.dataset.d));
+  else if (btn.dataset.d !== undefined) adjust(Number(btn.dataset.d));
 });
 
 // ---- window controls -----------------------------------------------------------
@@ -265,8 +265,6 @@ $('timing').addEventListener('click', (e) => {
 const win = getCurrentWindow();
 $('handle').addEventListener('mousedown', (e) => e.button === 0 && void win.startDragging());
 $('grip').addEventListener('mousedown', (e) => e.button === 0 && void win.startResizeDragging('SouthEast'));
-$('fontDown').addEventListener('click', () => void api.update({ fontPx: settings.fontPx - 2 }));
-$('fontUp').addEventListener('click', () => void api.update({ fontPx: settings.fontPx + 2 }));
 $('lock').addEventListener('click', () => void api.update({ clickThrough: true }));
 $('gear').addEventListener('click', () => void api.openSettings());
 document.addEventListener('contextmenu', (e) => e.preventDefault());
