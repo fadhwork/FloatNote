@@ -57,6 +57,8 @@
       "icons/icon.ico"
     ],
     "publisher": "fadhlihsani",
-    "shortDescription": "Floating, click-through synced lyrics overlay"
+    "shortDescription": "Floating, click-through synced lyrics overlay",
+    "copyright": "Copyright (c) 2026 fadhlihsani",
+    "longDescription": "FloatNote shows synced lyrics for whatever you are playing in a floating, click-through overlay."
   }
 }
