@@ -65,7 +65,7 @@ impl Default for Settings {
             always_on_top: true,
             first_run_done: false,
             dynamic_color: false,
-            dual_subtitles: true,
+            dual_subtitles: false,
             translate_to: "en".into(),
             start_with_windows: false,
             idle_fade: true,
