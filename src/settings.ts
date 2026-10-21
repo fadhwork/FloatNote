@@ -56,7 +56,7 @@ app.innerHTML = `
 </div>
 
 <footer>
-  <span class="credit">crafted by fadhlihsani</span>
+  <span class="credit">crafted by fadhlihsani with love</span>
   <span class="btns"><button id="hide">Hide to tray</button><button class="danger" id="quit">Quit</button></span>
 </footer>
 `;

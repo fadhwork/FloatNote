@@ -121,17 +121,6 @@ function build(idx: number) {
     lyricsEl.append(div);
   }
   lyricsEl.classList.toggle('one', settings.lines === 1);
-  if (settings.lines === 1) fitOneLine();
-}
-
-/** One-line mode: shrink the current line (never below 50%) so it fits the width instead of wrapping. */
-function fitOneLine() {
-  lyricsEl.style.setProperty('--fit', '1');
-  const wrap = lyricsEl.querySelector<HTMLElement>('.line.cur .wrap');
-  if (!wrap) return;
-  const avail = lyricsEl.clientWidth - 48;
-  const need = wrap.scrollWidth;
-  if (avail > 0 && need > avail) lyricsEl.style.setProperty('--fit', String(Math.max(0.5, avail / need)));
 }
 
 function render() {

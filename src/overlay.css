@@ -59,18 +59,21 @@ html, body {
 
 .line {
   min-height: 1.25em;
-  line-height: 1.25;
+  line-height: 1.28;
   color: var(--font-color);
   text-shadow: var(--outline);
   text-wrap: balance;
   font-weight: 600;
   transition: opacity 0.3s ease;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
-.line.near { font-size: calc(var(--font-px) * 0.68); opacity: 0.5; }
-.line.near.n2 { font-size: calc(var(--font-px) * 0.55); opacity: 0.3; }
-.line.cur { font-size: var(--font-px); font-weight: 700; animation: rise 0.28s ease-out; }
+.line.near { font-size: var(--font-px) !important; opacity: 0.45; }
+.line.near.n2 { font-size: var(--font-px) !important; opacity: 0.25; }
+.line.cur { font-size: var(--font-px) !important; font-weight: 700; animation: rise 0.28s ease-out; }
 
-.wrap { position: relative; display: inline-block; max-width: 100%; }
+.wrap { position: relative; display: inline-block; max-width: 100%; white-space: normal; text-wrap: balance; word-break: break-word; overflow-wrap: anywhere; }
 .fill {
   position: absolute;
   inset: 0;
@@ -150,18 +153,18 @@ button:focus-visible { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7); }
   padding: 3px;
 }
 
-/* time adjustment: bigger text */
-#timing button { min-width: 54px; padding: 7px 12px; font-variant-numeric: tabular-nums; }
-#timing #offset { min-width: 62px; color: var(--fill-color); font-weight: 700; }
+/* time adjustment: compact, sleek */
+#timing button { min-width: 30px; padding: 2px 6px; font-size: 11px; font-variant-numeric: tabular-nums; }
+#timing #offset { min-width: 36px; font-size: 11px; color: var(--fill-color); font-weight: 700; }
 
-/* music controls: bigger icons */
-#music button.ico { width: 46px; height: 40px; display: grid; place-items: center; padding: 0; }
-#music button.ico svg { width: 24px; height: 24px; fill: #fff; }
-#music button.big { width: 56px; height: 44px; }
-#music button.big svg { width: 30px; height: 30px; }
-#music #lock { padding: 8px 14px; }
-#music #gear { width: 40px; height: 40px; padding: 0; font-size: 19px; display: grid; place-items: center; }
-#music .sep { width: 1px; height: 20px; background: rgba(255, 255, 255, 0.2); margin: 0 5px; }
+/* music controls: compact icons */
+#music button.ico { width: 26px; height: 24px; display: grid; place-items: center; padding: 0; }
+#music button.ico svg { width: 12px; height: 12px; fill: #fff; }
+#music button.big { width: 30px; height: 26px; }
+#music button.big svg { width: 14px; height: 14px; }
+#music #lock { padding: 2px 7px; font-size: 11px; }
+#music #gear { width: 24px; height: 24px; padding: 0; font-size: 13px; display: grid; place-items: center; }
+#music .sep { width: 1px; height: 14px; background: rgba(255, 255, 255, 0.2); margin: 0 3px; }
 /* show the icon for what a click will do */
 #playBtn .i-pause { display: none; }
 #playBtn.playing .i-play { display: none; }
@@ -244,7 +247,9 @@ body.idle:not(.locked):hover #lyrics,
 body.idle:not(.locked):hover #status { opacity: 1; }
 body.idle:not(.locked):hover .panel { opacity: var(--panel-alpha); }
 
-/* One-line mode: never wrap; shrink the text to fit the width instead (--fit is set from script). */
-#lyrics.one .line.cur { font-size: calc(var(--font-px) * var(--fit, 1)); }
-#lyrics.one .line.cur .wrap { white-space: nowrap; }
-#lyrics.one .sub-line { display: block; font-size: calc(var(--font-px) * 0.45); }
+/* Clean text wrap with locked font size (never shrinks below selected fontPx) */
+.line.cur { font-size: var(--font-px) !important; font-weight: 700; }
+.line.cur .wrap { white-space: normal; text-wrap: balance; word-break: break-word; }
+#lyrics.one .line.cur { font-size: var(--font-px) !important; }
+#lyrics.one .line.cur .wrap { white-space: normal; text-wrap: balance; word-break: break-word; }
+#lyrics.one .sub-line { display: block; font-size: calc(var(--font-px) * 0.45); margin-top: 3px; }
