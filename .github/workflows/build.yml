@@ -45,23 +45,7 @@ jobs:
       - name: Collect exe
         shell: pwsh
         run: Copy-Item src-tauri/target/release/floatnote.exe FloatNote.exe
-      # Fills in Properties -> Details (product, description, publisher, copyright, version).
-      # Best effort: if the download fails the build still succeeds with Tauri's defaults.
-      - name: Set file details
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          $ver = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          Invoke-WebRequest https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe -OutFile rcedit.exe
-          ./rcedit.exe FloatNote.exe `
-            --set-file-version $ver --set-product-version $ver `
-            --set-version-string ProductName "FloatNote" `
-            --set-version-string FileDescription "FloatNote - synced lyrics overlay" `
-            --set-version-string CompanyName "fadhlihsani" `
-            --set-version-string LegalCopyright "Copyright (c) 2026 fadhlihsani" `
-            --set-version-string OriginalFilename "FloatNote.exe" `
-            --set-version-string InternalName "FloatNote"
-          (Get-Item FloatNote.exe).VersionInfo | Format-List ProductName, FileDescription, CompanyName, LegalCopyright, FileVersion
+      # Pure native Tauri build without post-link rcedit tampering to avoid Chrome Safe Browsing heuristics
       - name: Zip and checksums
         shell: pwsh
         run: |
