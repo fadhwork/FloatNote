@@ -247,4 +247,4 @@ body.idle:not(.locked):hover .panel { opacity: var(--panel-alpha); }
 /* One-line mode: never wrap; shrink the text to fit the width instead (--fit is set from script). */
 #lyrics.one .line.cur { font-size: calc(var(--font-px) * var(--fit, 1)); }
 #lyrics.one .line.cur .wrap { white-space: nowrap; }
-#lyrics.one .sub-line { display: none; }
+#lyrics.one .sub-line { display: block; font-size: calc(var(--font-px) * 0.45); }
