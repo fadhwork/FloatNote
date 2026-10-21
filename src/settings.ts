@@ -9,55 +9,57 @@ app.innerHTML = `
 </header>
 
 <div class="cols">
-  <div class="col">
-    <section>
-      <h2>Appearance</h2>
-      <div class="row"><label for="opacity">Glass opacity</label>
-        <div class="ctl"><input id="opacity" type="range" min="0" max="100" /><span class="val" id="opacityVal">35%</span></div></div>
-      <div class="row"><span class="lbl">Text size</span>
-        <div class="ctl"><button class="sq" id="fontMinus" aria-label="Smaller">−</button><input id="fontPx" type="range" min="14" max="72" /><button class="sq" id="fontPlus" aria-label="Larger">+</button></div></div>
-      <div class="row"><label for="fontFamily">Font</label>
-        <div class="ctl"><select id="fontFamily"><option value="sans">Modern Sans</option><option value="display">Display</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></div></div>
-      <div class="row"><span class="lbl">Align</span><div class="ctl"><div class="seg" id="align"><button data-v="left">Left</button><button data-v="center">Center</button><button data-v="right">Right</button></div></div></div>
-      <div class="row"><span class="lbl">Lines</span><div class="ctl"><div class="seg" id="lines"><button data-v="1">1</button><button data-v="3">3</button><button data-v="5">5</button></div></div></div>
-      <div class="row colors">
-        <label class="sw">Text <input id="fontColor" type="color" /></label>
-        <label class="sw">Sweep <input id="fillColor" type="color" aria-label="Sweep colour" /></label>
-        <label class="sw">Outline <input id="outlineColor" type="color" aria-label="Outline colour" /></label>
-      </div>
-      <div class="row"><label for="outline">Outline</label>
-        <div class="ctl"><input id="outlineWidth" type="range" min="0" max="6" step="0.5" /><label class="switch"><input id="outline" type="checkbox" /><span></span></label></div></div>
-      <div class="row pair">
-        <label class="half" for="karaoke">Karaoke sweep<span class="switch"><input id="karaoke" type="checkbox" /><span></span></span></label>
-        <label class="half" for="dynamicColor">Album accent<span class="switch"><input id="dynamicColor" type="checkbox" /><span></span></span></label>
-      </div>
-    </section>
-  </div>
+  <section>
+    <h2>Appearance</h2>
+    <div class="row"><label for="opacity">Glass opacity</label>
+      <div class="ctl"><input id="opacity" type="range" min="0" max="100" /><span class="val" id="opacityVal">35%</span></div></div>
+    <div class="row"><label for="fontPx">Text size</label>
+      <div class="ctl"><input id="fontPx" type="range" min="14" max="72" /><input id="fontPxNum" class="num" type="number" min="12" max="120" step="1" aria-label="Text size in px" /></div></div>
+    <div class="row"><label for="fontFamily">Font</label>
+      <div class="ctl"><select id="fontFamily"><option value="sans">Modern Sans</option><option value="display">Display</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></div></div>
+    <div class="row"><span class="lbl">Align</span><div class="ctl"><div class="seg icons" id="align">
+      <button data-v="left" title="Align left" aria-label="Align left"><svg viewBox="0 0 16 16"><path d="M2 3h12M2 6.5h8M2 10h12M2 13.5h8"/></svg></button>
+      <button data-v="center" title="Align center" aria-label="Align center"><svg viewBox="0 0 16 16"><path d="M2 3h12M4 6.5h8M2 10h12M4 13.5h8"/></svg></button>
+      <button data-v="right" title="Align right" aria-label="Align right"><svg viewBox="0 0 16 16"><path d="M2 3h12M6 6.5h8M2 10h12M6 13.5h8"/></svg></button>
+    </div></div></div>
+    <div class="row"><span class="lbl">Lines</span><div class="ctl"><div class="seg" id="lines"><button data-v="1">1</button><button data-v="3">3</button><button data-v="5">5</button></div></div></div>
+    <div class="row colors">
+      <label class="sw">Text <input id="fontColor" type="color" aria-label="Text colour" /></label>
+      <label class="sw">Sweep <input id="fillColor" type="color" aria-label="Sweep colour" /></label>
+    </div>
+    <div class="row"><label for="outlineWidth">Outline</label>
+      <div class="ctl"><input id="outlineColor" type="color" aria-label="Outline colour" /><input id="outlineWidth" type="range" min="0" max="6" step="0.5" /><input id="outlineWidthNum" class="num" type="number" min="0" max="6" step="0.5" aria-label="Outline size" /></div></div>
+    <div class="row"><label for="karaoke">Karaoke sweep</label><div class="ctl"><label class="switch"><input id="karaoke" type="checkbox" /><span></span></label></div></div>
+  </section>
 
-  <div class="col">
-    <section>
-      <h2>Behaviour</h2>
-      <div class="row"><label for="clickThrough">Click-through (lock)</label><div class="ctl"><label class="switch"><input id="clickThrough" type="checkbox" /><span></span></label></div></div>
-      <p class="hint">Locked: only the handle, resize corner, pause and timing respond. <b>Ctrl+Alt+L</b> unlocks.</p>
-      <div class="row"><label for="onTop">Always on top</label><div class="ctl"><label class="switch"><input id="onTop" type="checkbox" /><span></span></label></div></div>
-      <div class="row"><label for="autostart">Start with Windows</label><div class="ctl"><label class="switch"><input id="autostart" type="checkbox" /><span></span></label></div></div>
-      <div class="row"><label for="idleFade">Fade when idle</label><div class="ctl"><label class="switch"><input id="idleFade" type="checkbox" /><span></span></label></div></div>
-      <div class="row"><label for="translate">Translate lyrics</label>
-        <div class="ctl"><select id="translate"><option value="off">Off</option><option value="en">English</option><option value="id">Indonesia</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh-CN">中文</option></select></div></div>
-    </section>
-
-    <section>
-      <h2>Lyrics</h2>
-      <div class="row"><span class="lbl">Timing, this song</span><div class="ctl"><span class="val" id="songOffset">0s</span><button id="resetOffset">Reset</button></div></div>
-      <div class="row"><input id="query" type="text" placeholder="Wrong lyrics? Search title, artist" /><button class="primary" id="search">Search</button></div>
-      <div id="results"></div>
-    </section>
-  </div>
+  <section>
+    <h2>Behaviour</h2>
+    <div class="row"><label for="clickThrough">Click-through (lock)</label><div class="ctl"><label class="switch"><input id="clickThrough" type="checkbox" /><span></span></label></div></div>
+    <p class="hint">Locked: only the handle, resize corner, pause and timing respond. <b>Ctrl+Alt+L</b> unlocks.</p>
+    <div class="row"><label for="onTop">Always on top</label><div class="ctl"><label class="switch"><input id="onTop" type="checkbox" /><span></span></label></div></div>
+    <div class="row"><label for="autostart">Start with Windows</label><div class="ctl"><label class="switch"><input id="autostart" type="checkbox" /><span></span></label></div></div>
+    <div class="row"><label for="idleFade">Fade when idle</label><div class="ctl"><label class="switch"><input id="idleFade" type="checkbox" /><span></span></label></div></div>
+    <div class="row"><label for="dynamicColor">Album accent</label><div class="ctl"><label class="switch"><input id="dynamicColor" type="checkbox" /><span></span></label></div></div>
+    <div class="row"><label for="translate">Translate lyrics</label>
+      <div class="ctl"><select id="translate"><option value="off">Off</option><option value="en">English</option><option value="id">Indonesia</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh-CN">中文</option></select></div></div>
+  </section>
 </div>
 
+<section class="lyrics">
+  <div class="lyr-main">
+    <h2>Lyrics</h2>
+    <div class="row"><span class="lbl">Timing, this song</span><div class="ctl"><span class="val" id="songOffset">0s</span><button id="resetOffset">Reset</button></div></div>
+    <div class="row"><input id="query" type="text" placeholder="Wrong lyrics? Search title, artist" /><button class="primary" id="search">Search</button></div>
+    <div id="results"></div>
+  </div>
+  <div class="lyr-side">
+    <button id="hide">Hide to tray</button>
+    <button class="danger" id="quit">Quit</button>
+  </div>
+</section>
+
 <footer>
-  <span class="credit">crafted by fadhlihsani with love</span>
-  <span class="btns"><button id="hide">Hide to tray</button><button class="danger" id="quit">Quit</button></span>
+  <span class="credit">crafted with love by fadhlihsani</span>
 </footer>
 `;
 
@@ -101,19 +103,28 @@ function patch(p: Partial<Settings>) {
   });
 }
 
+/** Write a value into an input unless the user is currently typing / dragging in it. */
+function setIfIdle(id: string, value: string) {
+  const input = el<HTMLInputElement>(id);
+  if (document.activeElement !== input) input.value = value;
+}
+
 function sync() {
   if (!s) return;
-  el<HTMLInputElement>('opacity').value = String(s.opacity);
+  setIfIdle('opacity', String(s.opacity));
   el('opacityVal').textContent = `${s.opacity}%`;
-  el<HTMLInputElement>('fontPx').value = String(s.fontPx);
+  setIfIdle('fontPx', String(s.fontPx));
+  setIfIdle('fontPxNum', String(s.fontPx));
   el<HTMLSelectElement>('fontFamily').value = s.fontFamily;
   
   setColor('fontColor', s.fontColor);
   setColor('fillColor', s.fillColor);
   setColor('outlineColor', s.outlineColor);
 
-  el<HTMLInputElement>('outlineWidth').value = String(s.outlineWidth);
-  el<HTMLInputElement>('outline').checked = s.outline;
+  // Outline size 0 means "no outline".
+  const ow = s.outline ? s.outlineWidth : 0;
+  setIfIdle('outlineWidth', String(ow));
+  setIfIdle('outlineWidthNum', String(ow));
   el<HTMLInputElement>('karaoke').checked = s.karaoke;
   el<HTMLInputElement>('clickThrough').checked = s.clickThrough;
   el<HTMLInputElement>('dynamicColor').checked = s.dynamicColor;
@@ -144,7 +155,42 @@ const bind = <K extends keyof Settings>(id: string, key: K, read: (i: HTMLInputE
 };
 
 bind('opacity', 'opacity', (i) => Number(i.value));
-bind('fontPx', 'fontPx', (i) => Number(i.value));
+
+/** A slider with a number box next to it: both show the current value and edit the same setting. */
+function bindNumber(
+  rangeId: string,
+  numId: string,
+  min: number,
+  max: number,
+  apply: (v: number) => Partial<Settings>,
+  current: () => number,
+) {
+  const range = el<HTMLInputElement>(rangeId);
+  const num = el<HTMLInputElement>(numId);
+  const clamp = (v: number) => Math.min(max, Math.max(min, v));
+  range.addEventListener('input', () => {
+    const v = Number(range.value);
+    num.value = String(v);
+    patch(apply(v));
+  });
+  // While typing, only act on values that are already valid ("3" on the way to "30" is ignored).
+  num.addEventListener('input', () => {
+    const v = Number(num.value);
+    if (num.value === '' || !Number.isFinite(v) || v < min || v > max) return;
+    range.value = String(v);
+    patch(apply(v));
+  });
+  num.addEventListener('change', () => {
+    const raw = num.value === '' ? current() : Number(num.value);
+    const v = clamp(Number.isFinite(raw) ? raw : current());
+    num.value = String(v);
+    range.value = String(v);
+    patch(apply(v));
+  });
+}
+
+bindNumber('fontPx', 'fontPxNum', 12, 120, (v) => ({ fontPx: Math.round(v) }), () => s.fontPx);
+bindNumber('outlineWidth', 'outlineWidthNum', 0, 6, (v) => ({ outlineWidth: v, outline: v > 0 }), () => (s.outline ? s.outlineWidth : 0));
 
 // While the colour popup / eyedropper is in use, settings echoes from the backend are stale
 // (they carry colours from a moment ago). Writing them back into the input resets the picker,
@@ -186,8 +232,6 @@ bindColor('fontColor', 'fontColor');
 bindColor('fillColor', 'fillColor');
 bindColor('outlineColor', 'outlineColor');
 
-bind('outlineWidth', 'outlineWidth', (i) => Number(i.value));
-bind('outline', 'outline', (i) => i.checked);
 bind('karaoke', 'karaoke', (i) => i.checked);
 bind('clickThrough', 'clickThrough', (i) => i.checked);
 bind('onTop', 'alwaysOnTop', (i) => i.checked);
@@ -202,10 +246,8 @@ el<HTMLSelectElement>('translate').addEventListener('change', (e) => {
 
 el<HTMLSelectElement>('fontFamily').addEventListener('change', (e) =>
   patch({ fontFamily: (e.target as HTMLSelectElement).value as Settings['fontFamily'] }));
-el('fontMinus').addEventListener('click', () => patch({ fontPx: Math.max(12, s.fontPx - 2) }));
-el('fontPlus').addEventListener('click', () => patch({ fontPx: Math.min(120, s.fontPx + 2) }));
 el('align').addEventListener('click', (e) => {
-  const v = (e.target as HTMLElement).dataset.v;
+  const v = (e.target as HTMLElement).closest('button')?.dataset.v;
   if (v) patch({ align: v as Settings['align'] });
 });
 el('lines').addEventListener('click', (e) => {

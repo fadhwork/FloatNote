@@ -29,10 +29,9 @@ body {
 .np span { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
 .brand { font-weight: 700; letter-spacing: -0.01em; color: var(--accent); }
 
-.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; }
-.col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: stretch; } /* both groups always the same height */
 
-section { background: var(--card); border-radius: 12px; padding: 8px 12px 10px; display: flex; flex-direction: column; gap: 6px; }
+section { min-width: 0; background: var(--card); border-radius: 12px; padding: 8px 12px 10px; display: flex; flex-direction: column; gap: 6px; }
 section h2 { font-size: 10px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
 
 .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
@@ -42,7 +41,7 @@ section h2 { font-size: 10px; font-weight: 700; letter-spacing: 0.09em; text-tra
 .hint { color: var(--muted); font-size: 11.5px; line-height: 1.3; margin-top: -2px; }
 .hint b { color: var(--text); font-weight: 600; }
 
-input[type='range'] { -webkit-appearance: none; appearance: none; flex: 1; min-width: 60px; max-width: 150px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.16); outline: none; }
+input[type='range'] { -webkit-appearance: none; appearance: none; flex: 1; min-width: 40px; max-width: 150px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.16); outline: none; }
 input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.5); cursor: pointer; }
 input[type='color'] { -webkit-appearance: none; width: 30px; height: 22px; border: 0; padding: 0; border-radius: 7px; background: none; cursor: pointer; }
 input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
@@ -66,13 +65,17 @@ button.sq { width: 26px; padding: 4px 0; font-weight: 700; }
 .seg button { background: none; padding: 3px 10px; border-radius: 7px; }
 .seg button.on { background: rgba(255, 255, 255, 0.2); font-weight: 600; }
 
-/* colours: three swatches in one row */
-.row.colors { justify-content: space-between; }
+/* colours: text + sweep swatches in one row */
+.row.colors { justify-content: flex-start; gap: 18px; }
 .sw { display: inline-flex; align-items: center; gap: 6px; color: var(--text); cursor: pointer; }
 
-/* two toggles side by side */
-.row.pair { gap: 10px; }
-.half { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 6px; cursor: pointer; }
+/* number box next to a slider */
+input.num { -moz-appearance: textfield; appearance: textfield; width: 44px; flex: none; text-align: center; background: var(--card-hi); color: var(--text); border: 0; border-radius: 8px; padding: 4px 2px; font: inherit; font-variant-numeric: tabular-nums; outline: none; user-select: text; }
+input.num::-webkit-inner-spin-button, input.num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* align icons */
+.seg.icons button { padding: 4px 9px; display: grid; place-items: center; }
+.seg.icons svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; display: block; }
 
 .switch { position: relative; width: 34px; height: 20px; flex: none; display: inline-block; }
 .switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
@@ -82,14 +85,19 @@ button.sq { width: 26px; padding: 4px 0; font-weight: 700; }
 .switch input:checked + span::after { transform: translateX(14px); }
 .switch input:focus-visible + span { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.6); }
 
-#results { display: flex; flex-direction: column; gap: 4px; max-height: 70px; overflow-y: auto; }
-#results:empty { display: none; }
+/* fixed-height slot: search results appear inside it, so nothing below ever moves */
+#results { display: flex; flex-direction: column; gap: 4px; height: 76px; overflow-y: auto; }
 #results .hint { margin: 0; }
 .result { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--card-hi); border-radius: 8px; padding: 5px 8px; }
 .result div { min-width: 0; }
 .result b, .result small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .result small { color: var(--muted); }
 
-footer { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
-.credit { color: var(--muted); font-size: 11px; }
-.btns { display: flex; gap: 6px; }
+/* lyrics group: wide block, quit/hide on its right */
+section.lyrics { flex-direction: row; align-items: stretch; gap: 12px; }
+.lyr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.lyr-side { flex: none; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, 0.08); }
+.lyr-side button { min-width: 100px; }
+
+footer { display: flex; align-items: center; justify-content: center; padding: 0 2px; }
+.credit { color: var(--muted); font-size: 11px; text-align: center; }

@@ -22,9 +22,16 @@ let raf = 0;
 
 // What is currently drawn, so we only rebuild the DOM when the line changes.
 let shownSig = '';
-let fillEl: HTMLElement | null = null;
 let fillStart = 0;
 let fillDur = 1;
+// Karaoke sweep: one clipped copy of the line per *visual* row, so wrapped lyrics fill
+// row by row (left to right, then the next row) instead of all rows at the same time.
+type SweepRow = { el: HTMLElement; left: number; width: number; top: number; bottom: number };
+let sweepRows: SweepRow[] = [];
+let sweepTotal = 0;
+let sweepW = 0;
+let sweepH = 0;
+let sweepCur: { wrap: HTMLElement; base: HTMLElement; text: string } | null = null;
 
 const position = () =>
   anchor.pos + (anchor.playing ? (performance.now() - anchor.at) / 1000 : 0) + offsetMs / 1000;
@@ -58,7 +65,8 @@ function build(idx: number) {
   const half = Math.floor((lineCount - 1) / 2);
   lyricsEl.classList.toggle('plain', !settings.karaoke);
   lyricsEl.replaceChildren();
-  fillEl = null;
+  sweepRows = [];
+  sweepCur = null;
 
   // Intro preview before the first line starts
   if (idx < 0) {
@@ -97,12 +105,7 @@ function build(idx: number) {
       base.textContent = text || '♪';
       wrap.append(base);
       if (settings.karaoke && line && !lyrics.approx) {
-        const fill = document.createElement('span');
-        fill.className = 'fill';
-        fill.textContent = text || '♪';
-        fill.setAttribute('aria-hidden', 'true');
-        wrap.append(fill);
-        fillEl = fill;
+        sweepCur = { wrap, base, text: text || '♪' };
         const end = lines[i + 1]?.t ?? line.t + 4;
         const gap = Math.max(0.3, end - line.t);
         fillStart = line.t;
@@ -121,6 +124,53 @@ function build(idx: number) {
     lyricsEl.append(div);
   }
   lyricsEl.classList.toggle('one', settings.lines === 1);
+  layoutSweep();
+}
+
+/** Measure the wrapped rows of the current line and build one sweep layer per row. */
+function layoutSweep() {
+  sweepRows.forEach((r) => r.el.remove());
+  sweepRows = [];
+  sweepTotal = 0;
+  const cur = sweepCur;
+  if (!cur) return;
+  const { wrap, base, text } = cur;
+  const wr = wrap.getBoundingClientRect();
+  sweepW = wr.width;
+  sweepH = wr.height;
+
+  const range = document.createRange();
+  range.selectNodeContents(base);
+  const rows: { l: number; r: number; t: number; b: number }[] = [];
+  for (const rc of Array.from(range.getClientRects())) {
+    if (rc.width < 1 || rc.height < 1) continue;
+    const mid = (rc.top + rc.bottom) / 2;
+    const row = rows.find((x) => Math.abs((x.t + x.b) / 2 - mid) < rc.height * 0.5);
+    if (row) {
+      row.l = Math.min(row.l, rc.left);
+      row.r = Math.max(row.r, rc.right);
+      row.t = Math.min(row.t, rc.top);
+      row.b = Math.max(row.b, rc.bottom);
+    } else {
+      rows.push({ l: rc.left, r: rc.right, t: rc.top, b: rc.bottom });
+    }
+  }
+  if (rows.length === 0) rows.push({ l: wr.left, r: wr.right, t: wr.top, b: wr.bottom });
+  rows.sort((a, b) => a.t - b.t);
+
+  rows.forEach((row, i) => {
+    const el = document.createElement('span');
+    el.className = 'fill';
+    el.textContent = text;
+    el.setAttribute('aria-hidden', 'true');
+    wrap.append(el);
+    // Split the vertical space halfway between neighbouring rows so no glyph is cut off.
+    const top = i === 0 ? 0 : (rows[i - 1].b + row.t) / 2 - wr.top;
+    const bottom = i === rows.length - 1 ? wr.height : (row.b + rows[i + 1].t) / 2 - wr.top;
+    const width = Math.max(1, row.r - row.l);
+    sweepRows.push({ el, left: row.l - wr.left, width, top: Math.max(0, top), bottom: Math.min(wr.height, bottom) });
+    sweepTotal += width;
+  });
 }
 
 function render() {
@@ -132,9 +182,19 @@ function render() {
     shownSig = sig;
     build(idx);
   }
-  if (fillEl) {
+  if (sweepRows.length) {
     const p = Math.min(1, Math.max(0, (pos - fillStart) / fillDur));
-    fillEl.style.clipPath = `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`;
+    let dist = p * sweepTotal;
+    for (const r of sweepRows) {
+      const local = Math.min(1, Math.max(0, dist / r.width));
+      dist -= r.width;
+      if (local <= 0) {
+        r.el.style.clipPath = 'inset(0 100% 0 0)';
+      } else {
+        const right = local >= 1 ? 0 : sweepW - r.left - local * r.width;
+        r.el.style.clipPath = `inset(${r.top.toFixed(1)}px ${right.toFixed(1)}px ${(sweepH - r.bottom).toFixed(1)}px 0)`;
+      }
+    }
   }
 }
 
@@ -332,12 +392,15 @@ async function init() {
   await on<{ key: string; lyrics: Lyrics }>('lyrics-override', (p) => {
     loadedKey = p.key; setLyrics(p.lyrics);
   });
+  let resizeTimer = 0;
   window.addEventListener('resize', () => {
     reportRegions();
-    if (settings.lines === 1) {
-      shownSig = '';
+    // Rows re-wrap when the window is resized: re-measure the sweep once the drag settles.
+    clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => {
+      layoutSweep();
       render();
-    }
+    }, 100);
   });
 }
 
