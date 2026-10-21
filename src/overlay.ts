@@ -17,6 +17,7 @@ let loadedKey = '';
 let offsetMs = 0;
 let offsetTimer = 0;
 let anchor = { pos: 0, at: performance.now(), playing: false };
+let lastActiveAt = performance.now(); // for fade-when-idle
 let raf = 0;
 
 // What is currently drawn, so we only rebuild the DOM when the line changes.
@@ -95,7 +96,7 @@ function build(idx: number) {
       base.className = 'base';
       base.textContent = text || '♪';
       wrap.append(base);
-      if (settings.karaoke && line) {
+      if (settings.karaoke && line && !lyrics.approx) {
         const fill = document.createElement('span');
         fill.className = 'fill';
         fill.textContent = text || '♪';
@@ -119,6 +120,18 @@ function build(idx: number) {
     }
     lyricsEl.append(div);
   }
+  lyricsEl.classList.toggle('one', settings.lines === 1);
+  if (settings.lines === 1) fitOneLine();
+}
+
+/** One-line mode: shrink the current line (never below 50%) so it fits the width instead of wrapping. */
+function fitOneLine() {
+  lyricsEl.style.setProperty('--fit', '1');
+  const wrap = lyricsEl.querySelector<HTMLElement>('.line.cur .wrap');
+  if (!wrap) return;
+  const avail = lyricsEl.clientWidth - 48;
+  const need = wrap.scrollWidth;
+  if (avail > 0 && need > avail) lyricsEl.style.setProperty('--fit', String(Math.max(0.5, avail / need)));
 }
 
 function render() {
@@ -143,6 +156,8 @@ function frame() {
 
 /** Animate only while a song is actually playing; otherwise draw once and stop. */
 function syncLoop() {
+  $('playBtn').classList.toggle('playing', anchor.playing);
+  updateIdle();
   const wantLoop = anchor.playing && !!lyrics && lyrics.lines.length > 0;
   if (wantLoop && !raf) raf = requestAnimationFrame(frame);
   if (!wantLoop) {
@@ -164,6 +179,14 @@ function diag(): string {
 }
 
 function setLyrics(r: Lyrics) {
+  if (r.approx && r.lines.length > 0 && currentMedia && currentMedia.durationMs > 0 && r.duration > 0) {
+    // Lines were spread over LRCLIB's song length; stretch them to the length that is really playing.
+    const k = currentMedia.durationMs / 1000 / r.duration;
+    if (Math.abs(k - 1) > 0.01) {
+      r.lines.forEach((l) => (l.t *= k));
+      r.duration = currentMedia.durationMs / 1000;
+    }
+  }
   lyrics = r;
   shownSig = '';
   lyricsEl.replaceChildren();
@@ -175,6 +198,7 @@ function setLyrics(r: Lyrics) {
   } else {
     setStatus('');
     render();
+    if (r.approx) toast('No synced lyrics for this song. Timing is estimated: use −1s / +1s to line it up.');
   }
   syncLoop();
   if (settings.dualSubtitles && r.lines && r.lines.length > 0) {
@@ -289,6 +313,7 @@ function toast(text: string) {
 
 function applySettings(s: Settings, first = false) {
   const lockChanged = !first && s.clickThrough !== settings.clickThrough;
+  const translateChanged = !first && (s.dualSubtitles !== settings.dualSubtitles || s.translateTo !== settings.translateTo);
   settings = s;
   applyTheme(s);
   document.body.classList.toggle('locked', s.clickThrough);
@@ -301,6 +326,10 @@ function applySettings(s: Settings, first = false) {
     toast(s.clickThrough ? 'Click-through on  ·  Ctrl+Alt+L or the tray icon to unlock' : 'Click-through off');
   }
   requestAnimationFrame(reportRegions);
+  if (translateChanged && lyrics && lyrics.lines.length > 0) {
+    lyrics.lines.forEach((l) => (l.sub = ''));
+    if (s.dualSubtitles) void fetchTranslation(loadedKey, lyrics.lines);
+  }
   render();
   syncLoop();
 }
@@ -314,7 +343,13 @@ async function init() {
   await on<{ key: string; lyrics: Lyrics }>('lyrics-override', (p) => {
     loadedKey = p.key; setLyrics(p.lyrics);
   });
-  window.addEventListener('resize', reportRegions);
+  window.addEventListener('resize', () => {
+    reportRegions();
+    if (settings.lines === 1) {
+      shownSig = '';
+      render();
+    }
+  });
 }
 
 init().catch((err) => setStatus(`Startup error: ${String(err).slice(0, 160)}`));
@@ -419,17 +454,15 @@ async function fetchAlbumArtColor(m: Media) {
 
 async function fetchTranslation(curKey: string, lines: Lyrics['lines']) {
   try {
-    const rawText = lines.map((l) => l.text).join('\n');
-    const translated = await api.translateLyrics(rawText);
-    if (!translated || curKey !== loadedKey || !lyrics) return;
-    const transLines = translated.split('\n');
-    lyrics.lines.forEach((l, i) => {
-      l.sub = transLines[i]?.trim() || '';
+    const out = await api.translateLyrics(curKey, lines.map((l) => l.text), settings.translateTo);
+    if (curKey !== loadedKey || !lyrics || lyrics.lines !== lines) return;
+    lines.forEach((l, i) => {
+      l.sub = out[i]?.trim() || '';
     });
     shownSig = '';
     render();
   } catch {
-    // Graceful fallback
+    // Translation is optional: keep showing the original lyrics.
   }
 }
 
@@ -441,3 +474,13 @@ window.addEventListener('unhandledrejection', (e) => {
   console.error('FloatNote unhandled promise:', e.reason);
   if (!lyrics || lyrics.lines.length === 0) setStatus(`Error: ${String(e.reason).slice(0, 160)}`);
 });
+
+
+// ---- fade when idle: lyrics and glass fade out after a few seconds without playback ----
+function updateIdle() {
+  const active = !!loadedKey && anchor.playing;
+  if (active) lastActiveAt = performance.now();
+  const idle = !!settings?.idleFade && !active && performance.now() - lastActiveAt > 8000;
+  document.body.classList.toggle('idle', idle);
+}
+setInterval(updateIdle, 1000);

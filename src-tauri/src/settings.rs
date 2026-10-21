@@ -36,6 +36,12 @@ pub struct Settings {
     pub first_run_done: bool,
     pub dynamic_color: bool,
     pub dual_subtitles: bool,
+    /// Target language for the second subtitle line (see TRANSLATE_LANGS).
+    pub translate_to: String,
+    /// Add FloatNote to the Windows startup list.
+    pub start_with_windows: bool,
+    /// Fade the lyrics out when nothing has been playing for a few seconds.
+    pub idle_fade: bool,
     pub window: Option<Geometry>,
     /// Per-song timing offsets in milliseconds, keyed by "title|artist".
     pub offsets: HashMap<String, i64>,
@@ -59,12 +65,17 @@ impl Default for Settings {
             always_on_top: true,
             first_run_done: false,
             dynamic_color: false,
-            dual_subtitles: true,
+            dual_subtitles: false,
+            translate_to: "en".into(),
+            start_with_windows: false,
+            idle_fade: true,
             window: None,
             offsets: HashMap::new(),
         }
     }
 }
+
+pub const TRANSLATE_LANGS: [&str; 9] = ["en", "id", "es", "fr", "de", "pt", "ja", "ko", "zh-CN"];
 
 fn valid_color(s: &str) -> bool {
     s.starts_with('#')
@@ -94,6 +105,9 @@ impl Settings {
             self.align = d.align.clone();
         }
         // Colours end up inside CSS, so only accept plain hex values.
+        if !TRANSLATE_LANGS.contains(&self.translate_to.as_str()) {
+            self.translate_to = d.translate_to.clone();
+        }
         if !valid_color(&self.font_color) {
             self.font_color = d.font_color.clone();
         }
@@ -154,11 +168,23 @@ mod tests {
     }
 
     #[test]
+    fn new_options_have_safe_defaults_and_validation() {
+        let mut s = Settings::default();
+        assert!(s.idle_fade && !s.start_with_windows && s.translate_to == "en");
+        s.merge(json!({"translateTo": "xx", "startWithWindows": true})).unwrap();
+        assert_eq!(s.translate_to, "en");
+        assert!(s.start_with_windows);
+        s.merge(json!({"translateTo": "id"})).unwrap();
+        assert_eq!(s.translate_to, "id");
+    }
+
+    #[test]
     fn old_files_with_missing_keys_still_load() {
         let s: Settings = serde_json::from_str(r#"{"opacity": 10}"#).unwrap();
         assert_eq!(s.opacity, 10);
         assert_eq!(s.font_px, 30);
         assert_eq!(s.dynamic_color, false);
-        assert_eq!(s.dual_subtitles, true);
+        // Translation sends lyric text to an online service, so it is opt-in.
+        assert_eq!(s.dual_subtitles, false);
     }
 }

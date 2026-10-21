@@ -3,69 +3,62 @@ import './settings.css';
 
 const app = document.getElementById('app')!;
 app.innerHTML = `
-<header>
-  <div>
-    <div class="title" id="nowTitle">Nothing playing</div>
-    <div class="sub" id="nowArtist">Start a song in Spotify, YouTube Music or any player</div>
-  </div>
+<header class="top">
+  <div class="np"><b id="nowTitle">Nothing playing</b><span id="nowArtist">Start a song in Spotify, YouTube Music or any player</span></div>
+  <div class="brand">FloatNote</div>
 </header>
 
-<section>
-  <h2>Appearance</h2>
-  <div class="row">
-    <label for="opacity">Panel opacity</label>
-    <div class="ctl">
-      <input id="opacity" type="range" min="0" max="100" />
-      <span class="val" id="opacityVal">35%</span>
-    </div>
+<div class="cols">
+  <div class="col">
+    <section>
+      <h2>Appearance</h2>
+      <div class="row"><label for="opacity">Glass opacity</label>
+        <div class="ctl"><input id="opacity" type="range" min="0" max="100" /><span class="val" id="opacityVal">35%</span></div></div>
+      <div class="row"><span class="lbl">Text size</span>
+        <div class="ctl"><button class="sq" id="fontMinus" aria-label="Smaller">−</button><input id="fontPx" type="range" min="14" max="72" /><button class="sq" id="fontPlus" aria-label="Larger">+</button></div></div>
+      <div class="row"><label for="fontFamily">Font</label>
+        <div class="ctl"><select id="fontFamily"><option value="sans">Modern Sans</option><option value="display">Display</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></div></div>
+      <div class="row"><span class="lbl">Align</span><div class="ctl"><div class="seg" id="align"><button data-v="left">Left</button><button data-v="center">Center</button><button data-v="right">Right</button></div></div></div>
+      <div class="row"><span class="lbl">Lines</span><div class="ctl"><div class="seg" id="lines"><button data-v="1">1</button><button data-v="3">3</button><button data-v="5">5</button></div></div></div>
+      <div class="row colors">
+        <label class="sw">Text <input id="fontColor" type="color" /></label>
+        <label class="sw">Sweep <input id="fillColor" type="color" aria-label="Sweep colour" /></label>
+        <label class="sw">Outline <input id="outlineColor" type="color" aria-label="Outline colour" /></label>
+      </div>
+      <div class="row"><label for="outline">Outline</label>
+        <div class="ctl"><input id="outlineWidth" type="range" min="0" max="6" step="0.5" /><label class="switch"><input id="outline" type="checkbox" /><span></span></label></div></div>
+      <div class="row pair">
+        <label class="half" for="karaoke">Karaoke sweep<span class="switch"><input id="karaoke" type="checkbox" /><span></span></span></label>
+        <label class="half" for="dynamicColor">Album accent<span class="switch"><input id="dynamicColor" type="checkbox" /><span></span></span></label>
+      </div>
+    </section>
   </div>
-  <div class="row">
-    <span class="lbl">Font size</span>
-    <div class="ctl">
-      <button class="seg-btn" id="fontMinus">−</button>
-      <input id="fontPx" type="range" min="14" max="72" />
-      <button class="seg-btn" id="fontPlus">+</button>
-    </div>
-  </div>
-  <div class="row">
-    <label for="fontFamily">Typeface</label>
-    <div class="ctl">
-      <select id="fontFamily">
-        <option value="sans">Modern Sans</option>
-        <option value="display">Display</option>
-        <option value="serif">Editorial Serif</option>
-        <option value="mono">Monospace</option>
-      </select>
-    </div>
-  </div>
-  <div class="row"><span class="lbl">Alignment</span><div class="ctl"><div class="seg" id="align"><button data-v="left">Left</button><button data-v="center">Center</button><button data-v="right">Right</button></div></div></div>
-  <div class="row"><span class="lbl">Lines shown</span><div class="ctl"><div class="seg" id="lines"><button data-v="1">1</button><button data-v="3">3</button><button data-v="5">5</button></div></div></div>
-  <div class="row"><label for="fontColor">Text colour</label><div class="ctl"><input id="fontColor" type="color" /></div></div>
-  <div class="row"><label for="dynamicColor">Dynamic album accent</label><div class="ctl"><label class="switch"><input id="dynamicColor" type="checkbox" /><span></span></label></div></div>
-  <div class="row"><label for="karaoke">Karaoke sweep</label><div class="ctl"><input id="fillColor" type="color" aria-label="Sweep colour" /><label class="switch"><input id="karaoke" type="checkbox" /><span></span></label></div></div>
-  <div class="row"><label for="outline">Text outline</label><div class="ctl"><input id="outlineColor" type="color" aria-label="Outline colour" /><input id="outlineWidth" type="range" min="0" max="6" step="0.5" style="max-width:90px" /><label class="switch"><input id="outline" type="checkbox" /><span></span></label></div></div>
-</section>
 
-<section>
-  <h2>Behaviour</h2>
-  <div class="row"><label for="clickThrough">Click-through (lock)</label><div class="ctl"><label class="switch"><input id="clickThrough" type="checkbox" /><span></span></label></div></div>
-  <p class="hint">While locked, clicks pass straight through the lyrics. Only the drag handle, resize corner and timing buttons respond. Press <b>Ctrl+Alt+L</b> or use the tray icon to unlock.</p>
-  <div class="row"><label for="dualSubtitles">Dual subtitles (Translate)</label><div class="ctl"><label class="switch"><input id="dualSubtitles" type="checkbox" /><span></span></label></div></div>
-  <div class="row"><label for="onTop">Always on top</label><div class="ctl"><label class="switch"><input id="onTop" type="checkbox" /><span></span></label></div></div>
-</section>
+  <div class="col">
+    <section>
+      <h2>Behaviour</h2>
+      <div class="row"><label for="clickThrough">Click-through (lock)</label><div class="ctl"><label class="switch"><input id="clickThrough" type="checkbox" /><span></span></label></div></div>
+      <p class="hint">Locked: only the handle, resize corner, pause and timing respond. <b>Ctrl+Alt+L</b> unlocks.</p>
+      <div class="row"><label for="onTop">Always on top</label><div class="ctl"><label class="switch"><input id="onTop" type="checkbox" /><span></span></label></div></div>
+      <div class="row"><label for="autostart">Start with Windows</label><div class="ctl"><label class="switch"><input id="autostart" type="checkbox" /><span></span></label></div></div>
+      <div class="row"><label for="idleFade">Fade when idle</label><div class="ctl"><label class="switch"><input id="idleFade" type="checkbox" /><span></span></label></div></div>
+      <div class="row"><label for="translate">Translate lyrics</label>
+        <div class="ctl"><select id="translate"><option value="off">Off</option><option value="en">English</option><option value="id">Indonesia</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh-CN">中文</option></select></div></div>
+    </section>
 
-<section>
-  <h2>Lyrics</h2>
-  <div class="row"><span class="lbl">Timing for this song</span><div class="ctl"><span class="val" id="songOffset">0.00s</span><button id="resetOffset">Reset</button></div></div>
-  <div class="row"><input id="query" type="text" placeholder="Wrong lyrics? Search title and artist" /><button class="primary" id="search">Search</button></div>
-  <div id="results"></div>
-</section>
+    <section>
+      <h2>Lyrics</h2>
+      <div class="row"><span class="lbl">Timing, this song</span><div class="ctl"><span class="val" id="songOffset">0s</span><button id="resetOffset">Reset</button></div></div>
+      <div class="row"><input id="query" type="text" placeholder="Wrong lyrics? Search title, artist" /><button class="primary" id="search">Search</button></div>
+      <div id="results"></div>
+    </section>
+  </div>
+</div>
 
 <footer>
-  <button id="hide">Hide to tray</button>
-  <button class="danger" id="quit">Quit</button>
+  <span class="credit">crafted by fadhlihsani</span>
+  <span class="btns"><button id="hide">Hide to tray</button><button class="danger" id="quit">Quit</button></span>
 </footer>
-<div class="author-footer">FloatNote · crafted by fadhlihsani</div>
 `;
 
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -86,7 +79,10 @@ let s: Settings = {
   alwaysOnTop: true,
   firstRunDone: true,
   dynamicColor: false,
-  dualSubtitles: true,
+  dualSubtitles: false,
+  translateTo: 'en',
+  startWithWindows: false,
+  idleFade: true,
   offsets: {},
 };
 
@@ -121,7 +117,9 @@ function sync() {
   el<HTMLInputElement>('karaoke').checked = s.karaoke;
   el<HTMLInputElement>('clickThrough').checked = s.clickThrough;
   el<HTMLInputElement>('dynamicColor').checked = s.dynamicColor;
-  el<HTMLInputElement>('dualSubtitles').checked = s.dualSubtitles;
+  el<HTMLSelectElement>('translate').value = s.dualSubtitles ? s.translateTo : 'off';
+  el<HTMLInputElement>('autostart').checked = s.startWithWindows;
+  el<HTMLInputElement>('idleFade').checked = s.idleFade;
   el<HTMLInputElement>('onTop').checked = s.alwaysOnTop;
 
   for (const [id, cur] of [['align', s.align], ['lines', String(s.lines)]] as const) {
@@ -129,7 +127,7 @@ function sync() {
   }
 
   const off = media ? ((s.offsets && s.offsets[media.key]) ?? 0) / 1000 : 0;
-  el('songOffset').textContent = `${off > 0 ? '+' : ''}${off.toFixed(2)}s`;
+  el('songOffset').textContent = off === 0 ? '0' : `${off > 0 ? '+' : ''}${+off.toFixed(2)}s`;
 }
 
 function showMedia() {
@@ -194,7 +192,13 @@ bind('karaoke', 'karaoke', (i) => i.checked);
 bind('clickThrough', 'clickThrough', (i) => i.checked);
 bind('onTop', 'alwaysOnTop', (i) => i.checked);
 bind('dynamicColor', 'dynamicColor', (i) => i.checked);
-bind('dualSubtitles', 'dualSubtitles', (i) => i.checked);
+bind('autostart', 'startWithWindows', (i) => i.checked);
+bind('idleFade', 'idleFade', (i) => i.checked);
+el<HTMLSelectElement>('translate').addEventListener('change', (e) => {
+  const v = (e.target as HTMLSelectElement).value;
+  if (v === 'off') patch({ dualSubtitles: false });
+  else patch({ dualSubtitles: true, translateTo: v });
+});
 
 el<HTMLSelectElement>('fontFamily').addEventListener('change', (e) =>
   patch({ fontFamily: (e.target as HTMLSelectElement).value as Settings['fontFamily'] }));

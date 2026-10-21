@@ -2,6 +2,7 @@ mod lrc;
 mod lyrics;
 mod media;
 mod settings;
+mod translate;
 
 use lyrics::LyricsResult;
 use serde::Deserialize;
@@ -87,14 +88,39 @@ fn resolve_data_dir() -> PathBuf {
     fallback
 }
 
+/// Add/remove FloatNote in the per-user Windows startup list (HKCU\\...\\Run). Needs no admin rights.
+#[cfg(windows)]
+fn set_autostart(enabled: bool) {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    const KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
+    let mut cmd = std::process::Command::new("reg");
+    if enabled {
+        let Ok(exe) = std::env::current_exe() else { return };
+        let value = format!("\"{}\" --autostart", exe.display());
+        cmd.args(["add", KEY, "/v", "FloatNote", "/t", "REG_SZ", "/d", value.as_str(), "/f"]);
+    } else {
+        cmd.args(["delete", KEY, "/v", "FloatNote", "/f"]);
+    }
+    let _ = cmd.creation_flags(CREATE_NO_WINDOW).status();
+}
+
+#[cfg(not(windows))]
+fn set_autostart(_enabled: bool) {}
+
 fn apply_patch(app: &AppHandle, patch: Value) -> Result<Settings, String> {
     let state = app.state::<AppState>();
-    let new = {
+    let (prev_autostart, new) = {
         let mut s = state.settings.lock().unwrap();
+        let prev = s.start_with_windows;
         s.merge(patch)?;
-        s.clone()
+        (prev, s.clone())
     };
     settings::save(&state.data_dir, &new);
+    if prev_autostart != new.start_with_windows {
+        let enabled = new.start_with_windows;
+        std::thread::spawn(move || set_autostart(enabled));
+    }
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.set_always_on_top(new.always_on_top);
     }
@@ -263,53 +289,17 @@ async fn get_album_art(
     Ok(art)
 }
 
+/// Second subtitle line. One entry per input line; "" means "nothing to show for this line".
 #[tauri::command]
 async fn translate_lyrics(
     state: State<'_, AppState>,
-    text: String,
-) -> Result<String, String> {
-    if text.trim().is_empty() {
-        return Ok(String::new());
-    }
+    key: String,
+    lines: Vec<String>,
+    target: String,
+) -> Result<Vec<String>, String> {
     let client = state.http.clone();
-    let resp = match client
-        .get("https://translate.googleapis.com/translate_a/single")
-        .query(&[
-            ("client", "gtx"),
-            ("sl", "auto"),
-            ("tl", "en"),
-            ("dt", "t"),
-            ("q", text.as_str()),
-        ])
-        .send()
-        .await
-    {
-        Ok(r) => r,
-        Err(_) => return Ok(String::new()),
-    };
-
-    if !resp.status().is_success() {
-        return Ok(String::new());
-    }
-
-    let val: serde_json::Value = match resp.json().await {
-        Ok(v) => v,
-        Err(_) => return Ok(String::new()),
-    };
-
-    if val.get(2).and_then(|v| v.as_str()) == Some("en") {
-        return Ok(String::new());
-    }
-
-    let mut out = String::new();
-    if let Some(chunks) = val.get(0).and_then(|v| v.as_array()) {
-        for chunk in chunks {
-            if let Some(seg) = chunk.get(0).and_then(|v| v.as_str()) {
-                out.push_str(seg);
-            }
-        }
-    }
-    Ok(out)
+    let dir = state.data_dir.clone();
+    translate::translate_lines(&client, &dir, &key, &lines, &target).await
 }
 
 #[tauri::command]
@@ -389,6 +379,10 @@ fn spawn_window_loop(app: AppHandle) {
 
 pub fn run() {
     tauri::Builder::default()
+        // A second launch just brings up Settings of the copy that is already running.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            open_settings_window(app);
+        }))
         .manage(AppState::new())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -485,6 +479,7 @@ pub fn run() {
             tray.build(app)?;
 
             let first_run = !loaded.first_run_done;
+            let loaded_autostart = loaded.start_with_windows;
             let saved_window = loaded.window.clone();
             let on_top = loaded.always_on_top;
 
@@ -520,7 +515,12 @@ pub fn run() {
                 .global_shortcut()
                 .register(Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyL));
 
-            if first_run {
+            let started_by_windows = std::env::args().any(|a| a == "--autostart");
+            if loaded_autostart {
+                // Refresh the path in case the portable exe was moved.
+                std::thread::spawn(|| set_autostart(true));
+            }
+            if first_run && !started_by_windows {
                 open_settings_window(&handle);
             }
 

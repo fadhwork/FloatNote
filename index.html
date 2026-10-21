@@ -5,35 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FloatNote</title>
   </head>
-  <body class="locked-off">
-    <div id="panel" class="panel"></div>
-    <main id="lyrics" aria-live="polite"></main>
-    <div id="status"></div>
-
-    <div id="toolbar" class="ctl" data-hit>
-      <button id="prevBtn" title="Previous track">⏮</button>
-      <button id="nextBtn" title="Next track">⏭</button>
-      <span class="sep"></span>
-      <button id="lock" title="Click-through (Ctrl+Alt+L to undo)">Lock</button>
-      <button id="gear" title="Settings">⚙</button>
+  <body>
+    <!-- The glass display: only lyrics live in here, so it can shrink to a single line. -->
+    <div id="display">
+      <div id="panel" class="panel"></div>
+      <main id="lyrics" aria-live="polite"></main>
+      <div id="status"></div>
+      <div id="handle" class="ctl" data-hit title="Drag to move"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div id="grip" class="ctl" data-hit title="Drag to resize"></div>
+      <div id="toast"></div>
     </div>
 
-    <div id="handle" class="ctl" data-hit title="Drag to move">
-      <i></i><i></i><i></i><i></i><i></i><i></i>
+    <!-- Controls sit below the display, outside it. -->
+    <div id="controls">
+      <div id="timing" class="ctl" data-hit>
+        <button data-d="-3000" title="Lyrics 3 s later">−3s</button>
+        <button data-d="-1000" title="Lyrics 1 s later">−1s</button>
+        <button id="offset" title="Click to reset to 0">0</button>
+        <button data-d="1000" title="Lyrics 1 s sooner">+1s</button>
+        <button data-d="3000" title="Lyrics 3 s sooner">+3s</button>
+      </div>
+      <div id="music" class="ctl" data-hit>
+        <button id="prevBtn" class="ico when-unlocked" title="Previous track" aria-label="Previous track">
+          <svg viewBox="0 0 24 24"><path d="M6 5h2.2v14H6zM20 5v14L9 12z"/></svg>
+        </button>
+        <button id="playBtn" class="ico big" title="Play / Pause" aria-label="Play or pause">
+          <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="i-pause" viewBox="0 0 24 24"><path d="M6.5 5h4v14h-4zM13.5 5h4v14h-4z"/></svg>
+        </button>
+        <button id="nextBtn" class="ico when-unlocked" title="Next track" aria-label="Next track">
+          <svg viewBox="0 0 24 24"><path d="M15.8 5H18v14h-2.2zM4 5v14l11-7z"/></svg>
+        </button>
+        <span class="sep when-unlocked"></span>
+        <button id="lock" class="when-unlocked" title="Click-through (Ctrl+Alt+L to undo)">Lock</button>
+        <button id="gear" class="when-unlocked" title="Settings" aria-label="Settings">⚙</button>
+      </div>
     </div>
 
-    <div id="timing" class="ctl" data-hit>
-      <button id="playBtn" title="Play / Pause">⏯</button>
-      <span class="sep"></span>
-      <button data-d="-3000" title="Lyrics 3 s later">−3s</button>
-      <button data-d="-1000" title="Lyrics 1 s later">−1s</button>
-      <button id="offset" title="Click to reset to 0">0</button>
-      <button data-d="1000" title="Lyrics 1 s sooner">+1s</button>
-      <button data-d="3000" title="Lyrics 3 s sooner">+3s</button>
-    </div>
-
-    <div id="grip" class="ctl" data-hit title="Drag to resize"></div>
-    <div id="toast"></div>
     <script type="module" src="/src/overlay.ts"></script>
   </body>
 </html>

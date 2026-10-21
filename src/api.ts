@@ -18,6 +18,10 @@ export interface Settings {
   firstRunDone: boolean;
   dynamicColor: boolean;
   dualSubtitles: boolean;
+  /** Language of the second subtitle line (en, id, es, fr, de, pt, ja, ko, zh-CN). */
+  translateTo: string;
+  startWithWindows: boolean;
+  idleFade: boolean;
   offsets: Record<string, number>;
 }
 
@@ -47,6 +51,8 @@ export interface Lyrics {
   title: string;
   artist: string;
   duration: number;
+  /** true = no synced lyrics exist; line times are spread evenly over the song (a guess). */
+  approx?: boolean;
 }
 
 export interface Rect {
@@ -75,7 +81,9 @@ export const api = {
   hideSettings: () => invoke<void>('hide_settings'),
   mediaControl: (action: 'toggle' | 'next' | 'prev') => invoke<void>('media_control', { action }),
   getAlbumArt: (title: string, artist: string) => invoke<string | null>('get_album_art', { title, artist }),
-  translateLyrics: (text: string) => invoke<string>('translate_lyrics', { text }),
+  /** One translated string per input line ("" = nothing to show). Cached on disk per song. */
+  translateLyrics: (key: string, lines: string[], target: string) =>
+    invoke<string[]>('translate_lyrics', { key, lines, target }),
   quit: () => invoke<void>('quit_app'),
 };
 

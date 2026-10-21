@@ -20,6 +20,8 @@ pub struct LyricsResult {
     pub title: String,
     pub artist: String,
     pub duration: f64,
+    /// true = no synced lyrics exist: the lines are spread evenly over the song (timing is a guess).
+    pub approx: bool,
 }
 
 /// LRCLIB's JSON uses camelCase keys.
@@ -31,6 +33,7 @@ struct Remote {
     duration: Option<f64>,
     instrumental: Option<bool>,
     synced_lyrics: Option<String>,
+    plain_lyrics: Option<String>,
 }
 
 fn usable(r: &Remote) -> Option<LyricsResult> {
@@ -41,6 +44,7 @@ fn usable(r: &Remote) -> Option<LyricsResult> {
         title: r.track_name.clone().unwrap_or_default(),
         artist: r.artist_name.clone().unwrap_or_default(),
         duration: r.duration.unwrap_or(0.0),
+        approx: false,
     };
     if r.instrumental == Some(true) {
         return Some(LyricsResult { instrumental: true, ..base });
@@ -51,6 +55,41 @@ fn usable(r: &Remote) -> Option<LyricsResult> {
     } else {
         Some(LyricsResult { lines, ..base })
     }
+}
+
+/// Only plain (unsynced) lyrics exist: spread the lines evenly over the song so something scrolls.
+/// The first ~6% of the song is left for the intro. Timing is a guess, so the result is flagged `approx`.
+fn usable_plain(r: &Remote) -> Option<LyricsResult> {
+    if r.instrumental == Some(true) {
+        return None;
+    }
+    let text = r.plain_lyrics.as_deref()?;
+    let rows: Vec<String> = text
+        .lines()
+        .map(|l| l.trim())
+        .filter(|l| !l.is_empty())
+        .map(String::from)
+        .collect();
+    if rows.len() < 4 {
+        return None;
+    }
+    let total = r.duration.filter(|d| *d > 20.0).unwrap_or(180.0);
+    let start = total * 0.06;
+    let step = (total * 0.90) / rows.len() as f64;
+    let lines = rows
+        .into_iter()
+        .enumerate()
+        .map(|(i, text)| Line { t: start + step * i as f64, text })
+        .collect();
+    Some(LyricsResult {
+        lines,
+        instrumental: false,
+        source: "lrclib".into(),
+        title: r.track_name.clone().unwrap_or_default(),
+        artist: r.artist_name.clone().unwrap_or_default(),
+        duration: total,
+        approx: true,
+    })
 }
 
 async fn search_raw(
@@ -74,10 +113,15 @@ async fn search_raw(
 /// Choose the best candidate. A result is only accepted if its title resembles one of
 /// `titles` (so a loose search can never hand back some unrelated song) and, when both
 /// durations are known, it is within 30 s of the song that is playing.
-fn pick_best(list: &[Remote], duration_s: f64, titles: &[String]) -> Option<LyricsResult> {
+fn pick_best(
+    list: &[Remote],
+    duration_s: f64,
+    titles: &[String],
+    convert: fn(&Remote) -> Option<LyricsResult>,
+) -> Option<LyricsResult> {
     let mut best: Option<(f64, LyricsResult)> = None;
     for r in list {
-        let Some(res) = usable(r) else { continue };
+        let Some(res) = convert(r) else { continue };
         if !res.title.is_empty() {
             let sim = titles
                 .iter()
@@ -118,6 +162,8 @@ pub async fn fetch(
     let artist_clean = clean_artist(artist);
     let first_artist = primary_artist(&artist_clean);
     let mut last_err: Option<String> = None;
+    // Remembered while searching: used only if no synced version turns up anywhere.
+    let mut plain_fallback: Option<LyricsResult> = None;
 
     // Titles a correct result may resemble.
     let mut titles: Vec<String> = vec![name.clone(), title.trim().to_string()];
@@ -140,6 +186,7 @@ pub async fn fetch(
                     if let Some(res) = usable(&r) {
                         return Ok(Some(res));
                     }
+                    plain_fallback = usable_plain(&r);
                 }
             }
             Ok(_) => {} // 404 etc: fall through to the searches
@@ -182,12 +229,18 @@ pub async fn fetch(
         match search_raw(client, &params).await {
             Ok(list) => {
                 any_ok = true;
-                if let Some(best) = pick_best(&list, duration_s, &titles) {
+                if let Some(best) = pick_best(&list, duration_s, &titles, usable) {
                     return Ok(Some(best));
+                }
+                if plain_fallback.is_none() {
+                    plain_fallback = pick_best(&list, duration_s, &titles, usable_plain);
                 }
             }
             Err(e) => last_err = Some(e),
         }
+    }
+    if plain_fallback.is_some() {
+        return Ok(plain_fallback);
     }
     if any_ok {
         Ok(None)
@@ -198,13 +251,20 @@ pub async fn fetch(
 
 /// Free-text search used by the manual "pick the right lyrics" box.
 pub async fn search(client: &reqwest::Client, query: &str) -> Result<Vec<LyricsResult>, String> {
-    let list = search_raw(client, &[("q", query.to_string())]).await?;
-    Ok(list.iter().filter_map(usable).take(8).collect())
+    // "Official", "VEVO", "(Official Video)" ... only get in the way of a search.
+    let cleaned = clean_title(query);
+    let q = if cleaned.trim().is_empty() { query.trim().to_string() } else { cleaned };
+    let list = search_raw(client, &[("q", q)]).await?;
+    // Synced versions first, then plain-only ones (flagged `approx`).
+    let mut out: Vec<LyricsResult> = list.iter().filter_map(usable).collect();
+    out.extend(list.iter().filter(|r| usable(r).is_none()).filter_map(usable_plain));
+    out.truncate(8);
+    Ok(out)
 }
 
 // ---- cache -----------------------------------------------------------------
 
-fn fnv1a(s: &str) -> u64 {
+pub(crate) fn fnv1a(s: &str) -> u64 {
     let mut h: u64 = 0xcbf29ce484222325;
     for b in s.bytes() {
         h ^= b as u64;
@@ -245,6 +305,7 @@ mod tests {
             duration: Some(secs),
             instrumental: Some(false),
             synced_lyrics: Some("[00:01.00] hi".to_string()),
+            plain_lyrics: None,
         }
     }
 
@@ -252,14 +313,42 @@ mod tests {
     fn rejects_unrelated_songs_and_far_durations() {
         let titles = vec!["Hati-Hati di Jalan".to_string()];
         let list = vec![remote("Totally Different", 200.0), remote("Hati Hati Di Jalan", 400.0)];
-        assert!(pick_best(&list, 200.0, &titles).is_none());
+        assert!(pick_best(&list, 200.0, &titles, usable).is_none());
     }
 
     #[test]
     fn prefers_closest_duration_among_matching_titles() {
         let titles = vec!["Hati-Hati di Jalan".to_string()];
         let list = vec![remote("Hati Hati di Jalan", 190.0), remote("Hati-Hati di Jalan", 201.0)];
-        let best = pick_best(&list, 200.0, &titles).unwrap();
+        let best = pick_best(&list, 200.0, &titles, usable).unwrap();
         assert_eq!(best.duration, 201.0);
+    }
+
+    #[test]
+    fn plain_lyrics_become_evenly_spaced_approx_lines() {
+        let r = Remote {
+            track_name: Some("T".into()),
+            artist_name: Some("A".into()),
+            duration: Some(200.0),
+            instrumental: Some(false),
+            synced_lyrics: None,
+            plain_lyrics: Some("one\n\n two \nthree\nfour\nfive".into()),
+        };
+        assert!(usable(&r).is_none());
+        let p = usable_plain(&r).unwrap();
+        assert!(p.approx);
+        assert_eq!(p.lines.len(), 5);
+        assert_eq!(p.lines[1].text, "two");
+        assert!((p.lines[0].t - 12.0).abs() < 1e-9);
+        assert!(p.lines[4].t < 200.0 && p.lines[3].t < p.lines[4].t);
+    }
+
+    #[test]
+    fn too_short_plain_text_is_ignored() {
+        let r = Remote {
+            track_name: None, artist_name: None, duration: None, instrumental: None,
+            synced_lyrics: None, plain_lyrics: Some("la\nla".into()),
+        };
+        assert!(usable_plain(&r).is_none());
     }
 }

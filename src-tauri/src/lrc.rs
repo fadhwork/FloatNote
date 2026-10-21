@@ -112,7 +112,58 @@ fn has_noise_word(s: &str) -> bool {
         .any(|w| NOISE_WORDS.contains(&w))
 }
 
-/// Strip "(feat. X)", "[Official Video]", "- 2011 Remaster" etc. so lyric lookups match.
+/// Phrases that are YouTube clutter, not part of a song title.
+const NOISE_PHRASES: [&[&str]; 11] = [
+    &["official", "music", "video"],
+    &["official", "lyric", "video"],
+    &["official", "lyrics", "video"],
+    &["official", "audio"],
+    &["official", "video"],
+    &["official", "lyrics"],
+    &["official", "lyric"],
+    &["music", "video"],
+    &["lyric", "video"],
+    &["lyrics", "video"],
+    &["official", "mv"],
+];
+const NOISE_TOKENS: [&str; 6] = ["official", "vevo", "hd", "hq", "mv", "4k"];
+
+fn norm_token(t: &str) -> String {
+    t.chars().filter(|c| c.is_alphanumeric()).collect::<String>().to_lowercase()
+}
+
+/// Remove "Official", "Official Music Video", "VEVO", "HD", "AdeleVEVO" -> "Adele" ... from loose text.
+fn strip_noise_tokens(s: &str) -> String {
+    let toks: Vec<&str> = s.split_whitespace().collect();
+    let norm: Vec<String> = toks.iter().map(|t| norm_token(t)).collect();
+    let mut out: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < toks.len() {
+        if let Some(p) = NOISE_PHRASES
+            .iter()
+            .find(|p| i + p.len() <= toks.len() && p.iter().enumerate().all(|(k, w)| norm[i + k] == *w))
+        {
+            i += p.len();
+            continue;
+        }
+        if NOISE_TOKENS.contains(&norm[i].as_str()) {
+            i += 1;
+            continue;
+        }
+        let t = toks[i];
+        // "AdeleVEVO" -> "Adele"
+        let keep = if t.len() > 4 && t.is_char_boundary(t.len() - 4) && t[t.len() - 4..].eq_ignore_ascii_case("vevo") {
+            &t[..t.len() - 4]
+        } else {
+            t
+        };
+        out.push(keep.to_string());
+        i += 1;
+    }
+    out.join(" ")
+}
+
+/// Strip "(feat. X)", "[Official Video]", "- 2011 Remaster", "Official", "VEVO" ... so lookups match.
 pub fn clean_title(title: &str) -> String {
     let chars: Vec<char> = title.chars().collect();
     let mut out = String::new();
@@ -132,12 +183,15 @@ pub fn clean_title(title: &str) -> String {
         out.push(c);
         i += 1;
     }
+    // Remove loose clutter first, so "Artist - Song Official Video" is not mistaken
+    // for "Song - Official Remaster" by the suffix rule below.
+    let mut out = strip_noise_tokens(&out);
     if let Some(idx) = out.find(" - ") {
         if has_noise_word(&out[idx + 3..]) {
             out.truncate(idx);
         }
     }
-    out.split_whitespace().collect::<Vec<_>>().join(" ")
+    out
 }
 
 /// "Artist - Topic" / "ArtistVEVO" (YouTube channel names) -> "Artist"
@@ -232,6 +286,20 @@ mod tests {
         assert!(title_similarity("Home", "Welcome Home") >= 0.99); // short vs long: needs the artist/duration check too
         assert!(title_similarity("Sandiwara Cinta", "Different Song Entirely") < 0.5);
         assert_eq!(title_similarity("", "x"), 0.0);
+    }
+
+    #[test]
+    fn strips_official_and_vevo_from_searches() {
+        assert_eq!(clean_title("Tulus - Hati-Hati di Jalan (Official Music Video)"), "Tulus - Hati-Hati di Jalan");
+        assert_eq!(clean_title("Tulus - Hati-Hati di Jalan Official Music Video"), "Tulus - Hati-Hati di Jalan");
+        assert_eq!(clean_title("Hello Adele VEVO"), "Hello Adele");
+        assert_eq!(clean_title("AdeleVEVO Hello"), "Adele Hello");
+        assert_eq!(clean_title("Song Official Video HD"), "Song");
+        assert_eq!(clean_title("Song Official Audio"), "Song");
+        // legitimate titles keep their words
+        assert_eq!(clean_title("Video Killed the Radio Star"), "Video Killed the Radio Star");
+        assert_eq!(clean_title("Music"), "Music");
+        assert_eq!(clean_title("Vevo"), "");
     }
 
     #[test]
