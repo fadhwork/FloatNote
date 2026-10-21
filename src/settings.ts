@@ -1,11 +1,16 @@
 import { api, on, type Lyrics, type Media, type Settings } from './api';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { LogicalSize } from '@tauri-apps/api/dpi';
 import './settings.css';
 
 const app = document.getElementById('app')!;
 app.innerHTML = `
 <header class="top">
-  <div class="np"><b id="nowTitle">Nothing playing</b><span id="nowArtist">Start a song in Spotify, YouTube Music or any player</span></div>
   <div class="brand">FloatNote</div>
+  <div class="np">
+    <div class="marq" id="nowTitleBox"><b id="nowTitle">Nothing playing</b></div>
+    <span id="nowArtist">Start a song in Spotify, YouTube Music or any player</span>
+  </div>
 </header>
 
 <div class="cols">
@@ -13,8 +18,6 @@ app.innerHTML = `
     <h2>Appearance</h2>
     <div class="row"><label for="opacity">Glass opacity</label>
       <div class="ctl"><input id="opacity" type="range" min="0" max="100" /><span class="val" id="opacityVal">35%</span></div></div>
-    <div class="row"><label for="fontPx">Text size</label>
-      <div class="ctl"><input id="fontPx" type="range" min="14" max="72" /><input id="fontPxNum" class="num" type="number" min="12" max="120" step="1" aria-label="Text size in px" /></div></div>
     <div class="row"><label for="fontFamily">Font</label>
       <div class="ctl"><select id="fontFamily"><option value="sans">Modern Sans</option><option value="display">Display</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></div></div>
     <div class="row"><span class="lbl">Align</span><div class="ctl"><div class="seg icons" id="align">
@@ -26,9 +29,12 @@ app.innerHTML = `
     <div class="row colors">
       <label class="sw">Text <input id="fontColor" type="color" aria-label="Text colour" /></label>
       <label class="sw">Sweep <input id="fillColor" type="color" aria-label="Sweep colour" /></label>
+      <label class="sw">Outline <input id="outlineColor" type="color" aria-label="Outline colour" /></label>
     </div>
+    <div class="row"><label for="fontPx">Text size</label>
+      <div class="ctl"><input id="fontPx" type="range" min="14" max="72" /><input id="fontPxNum" class="num" type="number" min="12" max="120" step="1" aria-label="Text size in px" /></div></div>
     <div class="row"><label for="outlineWidth">Outline</label>
-      <div class="ctl"><input id="outlineColor" type="color" aria-label="Outline colour" /><input id="outlineWidth" type="range" min="0" max="6" step="0.5" /><input id="outlineWidthNum" class="num" type="number" min="0" max="6" step="0.5" aria-label="Outline size" /></div></div>
+      <div class="ctl"><input id="outlineWidth" type="range" min="0" max="6" step="0.5" /><input id="outlineWidthNum" class="num" type="number" min="0" max="6" step="0.5" aria-label="Outline size" /></div></div>
     <div class="row"><label for="karaoke">Karaoke sweep</label><div class="ctl"><label class="switch"><input id="karaoke" type="checkbox" /><span></span></label></div></div>
   </section>
 
@@ -45,18 +51,17 @@ app.innerHTML = `
   </section>
 </div>
 
-<section class="lyrics">
-  <div class="lyr-main">
-    <h2>Lyrics</h2>
-    <div class="row"><span class="lbl">Timing, this song</span><div class="ctl"><span class="val" id="songOffset">0s</span><button id="resetOffset">Reset</button></div></div>
-    <div class="row"><input id="query" type="text" placeholder="Wrong lyrics? Search title, artist" /><button class="primary" id="search">Search</button></div>
-    <div id="results"></div>
-  </div>
-  <div class="lyr-side">
-    <button id="hide">Hide to tray</button>
-    <button class="danger" id="quit">Quit</button>
-  </div>
+<section>
+  <h2>Lyrics</h2>
+  <div class="row"><span class="lbl">Timing, this song</span><div class="ctl"><span class="val" id="songOffset">0s</span><button id="resetOffset">Reset</button></div></div>
+  <div class="row"><input id="query" type="text" placeholder="Wrong lyrics? Search title, artist" /><button class="primary" id="search">Search</button></div>
+  <div id="results"></div>
 </section>
+
+<div class="actions">
+  <button id="hide">Hide to tray</button>
+  <button class="danger" id="quit">Quit</button>
+</div>
 
 <footer>
   <span class="credit">crafted with love by fadhlihsani</span>
@@ -146,7 +151,31 @@ function showMedia() {
   el('nowArtist').textContent = media
     ? media.artist || 'Unknown artist'
     : 'Start a song in Spotify, YouTube Music or any player';
+  fitMarquee();
 }
+
+/** A title that is too long for its row slides left until the last word is visible, then back. */
+function fitMarquee() {
+  const box = el('nowTitleBox');
+  const title = el('nowTitle');
+  box.classList.remove('run');
+  const over = title.offsetWidth - box.clientWidth;
+  if (over > 2) {
+    box.style.setProperty('--shift', `${-over}px`);
+    box.style.setProperty('--dur', `${Math.max(6, over / 28 + 4).toFixed(1)}s`);
+    box.classList.add('run');
+  }
+}
+new ResizeObserver(() => fitMarquee()).observe(el('nowTitleBox'));
+
+/** The settings window is exactly as tall as its content: it ends right below the credit line. */
+let fittedH = 0;
+new ResizeObserver(() => {
+  const h = Math.ceil(app.getBoundingClientRect().height);
+  if (h < 200 || h === fittedH) return;
+  fittedH = h;
+  void getCurrentWindow().setSize(new LogicalSize(window.innerWidth, h)).catch(() => {});
+}).observe(app);
 
 const bind = <K extends keyof Settings>(id: string, key: K, read: (i: HTMLInputElement) => Settings[K]) => {
   const target = el<HTMLInputElement>(id);

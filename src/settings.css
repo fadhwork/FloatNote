@@ -22,12 +22,18 @@ body {
 }
 #app { padding: 10px 12px 10px; display: flex; flex-direction: column; gap: 8px; }
 
-/* header: what is playing + brand */
-.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 2px 4px; }
-.np { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.np b { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
-.np span { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
-.brand { font-weight: 700; letter-spacing: -0.01em; color: var(--accent); }
+/* header: brand centred on top, then song title (slides when too long), then artist */
+.top { display: flex; flex-direction: column; gap: 4px; padding: 2px 4px; }
+.brand { text-align: center; font-weight: 700; letter-spacing: -0.01em; color: var(--accent); }
+.np { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; }
+.marq { width: 100%; overflow: hidden; white-space: nowrap; }
+.marq b { display: inline-block; font-size: 13.5px; white-space: nowrap; }
+.marq.run b { animation: marquee var(--dur, 8s) ease-in-out infinite alternate; }
+@keyframes marquee { 0%, 14% { transform: translateX(0); } 86%, 100% { transform: translateX(var(--shift, 0)); } }
+@media (prefers-reduced-motion: reduce) {
+  .marq.run b { animation: none; display: block; overflow: hidden; text-overflow: ellipsis; }
+}
+.np span { color: var(--muted); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: stretch; } /* both groups always the same height */
 
@@ -38,12 +44,14 @@ section h2 { font-size: 10px; font-weight: 700; letter-spacing: 0.09em; text-tra
 .row > label, .row > .lbl { flex: 0 0 auto; }
 .row .ctl { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; justify-content: flex-end; min-width: 0; }
 .val { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
+.row .ctl > input[type='range'] + .val { width: 44px; min-width: 44px; text-align: center; }
 .hint { color: var(--muted); font-size: 11.5px; line-height: 1.3; margin-top: -2px; }
 .hint b { color: var(--text); font-weight: 600; }
 
-input[type='range'] { -webkit-appearance: none; appearance: none; flex: 1; min-width: 40px; max-width: 150px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.16); outline: none; }
+/* every slider has the same width, so glass / text size / outline line up */
+input[type='range'] { -webkit-appearance: none; appearance: none; flex: none; width: 100px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.16); outline: none; }
 input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.5); cursor: pointer; }
-input[type='color'] { -webkit-appearance: none; width: 30px; height: 22px; border: 0; padding: 0; border-radius: 7px; background: none; cursor: pointer; }
+input[type='color'] { -webkit-appearance: none; width: 26px; height: 22px; border: 0; padding: 0; border-radius: 7px; background: none; cursor: pointer; }
 input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
 input[type='color']::-webkit-color-swatch { border: 0; border-radius: 7px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28); }
 input[type='text'], select {
@@ -66,8 +74,8 @@ button.sq { width: 26px; padding: 4px 0; font-weight: 700; }
 .seg button.on { background: rgba(255, 255, 255, 0.2); font-weight: 600; }
 
 /* colours: text + sweep swatches in one row */
-.row.colors { justify-content: flex-start; gap: 18px; }
-.sw { display: inline-flex; align-items: center; gap: 6px; color: var(--text); cursor: pointer; }
+.row.colors { justify-content: space-between; gap: 0; }
+.sw { display: inline-flex; align-items: center; gap: 5px; color: var(--text); cursor: pointer; }
 
 /* number box next to a slider */
 input.num { -moz-appearance: textfield; appearance: textfield; width: 44px; flex: none; text-align: center; background: var(--card-hi); color: var(--text); border: 0; border-radius: 8px; padding: 4px 2px; font: inherit; font-variant-numeric: tabular-nums; outline: none; user-select: text; }
@@ -93,11 +101,8 @@ input.num::-webkit-inner-spin-button, input.num::-webkit-outer-spin-button { -we
 .result b, .result small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .result small { color: var(--muted); }
 
-/* lyrics group: wide block, quit/hide on its right */
-section.lyrics { flex-direction: row; align-items: stretch; gap: 12px; }
-.lyr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.lyr-side { flex: none; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, 0.08); }
-.lyr-side button { min-width: 100px; }
+/* hide / quit: one row, right aligned */
+.actions { display: flex; justify-content: flex-end; gap: 6px; }
 
 footer { display: flex; align-items: center; justify-content: center; padding: 0 2px; }
 .credit { color: var(--muted); font-size: 11px; text-align: center; }
