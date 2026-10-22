@@ -109,11 +109,9 @@ html, body {
 .ctl {
   opacity: 0;
   transition: opacity 0.18s ease;
-  color: #fff;
+  color: var(--font-color);
   font: 600 15px 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
-  background:
-    radial-gradient(130% 100% at 0% 0%, rgba(255, 255, 255, var(--panel-alpha)), transparent 55%),
-    linear-gradient(160deg, rgba(46, 52, 72, var(--panel-alpha)), rgba(14, 16, 24, var(--panel-alpha)));
+  background: transparent;
   border-radius: var(--radius);
 }
 body:not(.locked):hover .ctl,
@@ -158,6 +156,9 @@ button:focus-visible { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7); }
   height: 30px;
   justify-content: center;
   border-radius: 10px;
+  background: rgba(var(--glass-rgb), var(--panel-alpha));
+  opacity: 0;
+  transition: opacity 0.18s ease;
 }
 
 /* time adjustment: compact, sleek */
@@ -166,12 +167,16 @@ button:focus-visible { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7); }
 
 /* music controls: compact icons */
 #music button.ico { width: 22px; height: 22px; display: grid; place-items: center; padding: 0; }
-#music button.ico svg { width: 12px; height: 12px; fill: #fff; }
+#music button.ico svg { width: 12px; height: 12px; fill: currentColor; }
 #music button.big { width: 24px; height: 24px; }
 #music button.big svg { width: 13px; height: 13px; }
 #music #lock { padding: 2px 5px; font-size: 11px; }
 #music #gear { width: 22px; height: 22px; padding: 0; font-size: 13px; display: grid; place-items: center; }
 #music .sep { width: 1px; height: 14px; background: rgba(255, 255, 255, 0.2); margin: 0 2px; }
+body:not(.locked):hover #timing,
+body:not(.locked):hover #music,
+body.reveal #timing,
+body.reveal #music { opacity: 1; }
 /* show the icon for what a click will do */
 #playBtn .i-pause { display: none; }
 #playBtn.playing .i-play { display: none; }
