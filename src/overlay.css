@@ -1,5 +1,6 @@
 :root {
   --panel-alpha: 0.35;
+  --glass-rgb: 36, 40, 58;
   --font-px: 30px;
   --font-color: #fff;
   --fill-color: #7dd3fc;
@@ -40,8 +41,8 @@ html, body {
   transition: opacity 0.9s ease;
   background:
     radial-gradient(130% 100% at 0% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
-    radial-gradient(90% 80% at 100% 100%, rgba(125, 211, 252, 0.1), transparent 60%),
-    linear-gradient(160deg, rgba(46, 52, 72, 0.94), rgba(14, 16, 24, 0.97));
+    radial-gradient(90% 80% at 100% 100%, rgba(255, 255, 255, 0.1), transparent 60%),
+    linear-gradient(160deg, rgba(var(--glass-rgb), 0.94), rgba(var(--glass-rgb), 0.72));
 }
 
 #lyrics {

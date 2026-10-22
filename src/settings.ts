@@ -16,8 +16,6 @@ app.innerHTML = `
 <div class="cols">
   <section>
     <h2>Appearance</h2>
-    <div class="row"><label for="opacity">Glass opacity</label>
-      <div class="ctl"><input id="opacity" type="range" min="0" max="100" /><input id="opacityNum" class="num" type="number" min="0" max="100" step="1" aria-label="Glass opacity in percent" /></div></div>
     <div class="row"><label for="fontFamily">Font</label>
       <div class="ctl slider-col"><select id="fontFamily"><option value="sans">Modern Sans</option><option value="display">Display</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></div></div>
     <div class="row"><span class="lbl">Align</span><div class="ctl slider-col"><div class="seg icons" id="align">
@@ -26,24 +24,22 @@ app.innerHTML = `
       <button data-v="right" title="Align right" aria-label="Align right"><svg viewBox="0 0 16 16"><path d="M2 3h12M6 6.5h8M2 10h12M6 13.5h8"/></svg></button>
     </div></div></div>
     <div class="row"><span class="lbl">Lines</span><div class="ctl slider-col"><div class="seg" id="lines"><button data-v="1">1</button><button data-v="3">3</button><button data-v="5">5</button></div></div></div>
-    <div class="row colors">
-      <label class="sw">Text <input id="fontColor" type="color" aria-label="Text colour" /></label>
-      <label class="sw">Sweep <input id="fillColor" type="color" aria-label="Sweep colour" /></label>
-      <label class="sw">Outline <input id="outlineColor" type="color" aria-label="Outline colour" /></label>
+    <div class="row slider-color"><label for="opacity">Glass opacity</label>
+      <div class="ctl color-slider">
+        <input id="opacity" type="range" min="0" max="100" />
+        <span class="number-unit"><input id="opacityNum" class="num" type="number" min="0" max="100" step="1" aria-label="Glass opacity in percent" /><span>%</span></span>
+        <label class="color-pick" title="Glass colour"><input id="glassColor" type="color" aria-label="Glass colour" /></label>
+      </div>
     </div>
-    <div class="row"><label for="fontPx">Text size</label>
-      <div class="ctl"><input id="fontPx" type="range" min="14" max="72" /><input id="fontPxNum" class="num" type="number" min="12" max="120" step="1" aria-label="Text size in px" /></div></div>
-    <div class="row colors">
-      <label class="sw">Translation <input id="subColor" type="color" aria-label="Translation text colour" /></label>
-      <label class="sw">Sing along <input id="romColor" type="color" aria-label="Romanization text colour" /></label>
-    </div>
-    <div class="row"><label for="subFontPx">Translation size</label>
-      <div class="ctl"><input id="subFontPx" type="range" min="8" max="80" /><input id="subFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Translation text size in px" /></div></div>
-    <div class="row"><label for="romFontPx">Sing along size</label>
-      <div class="ctl"><input id="romFontPx" type="range" min="8" max="80" /><input id="romFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Romanization text size in px" /></div></div>
-    <div class="row"><label for="outlineWidth">Outline</label>
-      <div class="ctl"><input id="outlineWidth" type="range" min="0" max="6" step="0.5" /><input id="outlineWidthNum" class="num" type="number" min="0" max="6" step="0.5" aria-label="Outline size" /></div></div>
-    <div class="row"><label for="karaoke">Karaoke sweep</label><div class="ctl"><label class="switch"><input id="karaoke" type="checkbox" /><span></span></label></div></div>
+    <div class="row slider-color"><label for="fontPx">Text size</label>
+      <div class="ctl color-slider"><input id="fontPx" type="range" min="14" max="72" /><input id="fontPxNum" class="num" type="number" min="12" max="120" step="1" aria-label="Text size in px" /><label class="color-pick" title="Text colour"><input id="fontColor" type="color" aria-label="Text colour" /></label></div></div>
+    <div class="row slider-color"><label for="subFontPx">Translation size</label>
+      <div class="ctl color-slider"><input id="subFontPx" type="range" min="8" max="80" /><input id="subFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Translation text size in px" /><label class="color-pick" title="Translation text colour"><input id="subColor" type="color" aria-label="Translation text colour" /></label></div></div>
+    <div class="row slider-color"><label for="romFontPx">Sing along size</label>
+      <div class="ctl color-slider"><input id="romFontPx" type="range" min="8" max="80" /><input id="romFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Romanization text size in px" /><label class="color-pick" title="Sing-along text colour"><input id="romColor" type="color" aria-label="Romanization text colour" /></label></div></div>
+    <div class="row slider-color"><label for="outlineWidth">Outline size</label>
+      <div class="ctl color-slider"><input id="outlineWidth" type="range" min="0" max="6" step="0.5" /><input id="outlineWidthNum" class="num" type="number" min="0" max="6" step="0.5" aria-label="Outline size" /><label class="color-pick" title="Outline colour"><input id="outlineColor" type="color" aria-label="Outline colour" /></label></div></div>
+    <div class="row"><label for="karaoke">Karaoke sweep</label><div class="ctl"><label class="switch"><input id="karaoke" type="checkbox" /><span></span></label><label class="color-pick" title="Sweep colour"><input id="fillColor" type="color" aria-label="Sweep colour" /></label></div></div>
   </section>
 
   <section>
@@ -80,6 +76,7 @@ const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as
 
 let s: Settings = {
   opacity: 35,
+  glassColor: '#24283a',
   fontPx: 30,
   fontColor: '#ffffff',
   fillColor: '#7dd3fc',
@@ -139,6 +136,7 @@ function sync() {
   setIfIdle('romFontPxNum', String(s.romFontPx));
   el<HTMLSelectElement>('fontFamily').value = s.fontFamily;
   
+  setColor('glassColor', s.glassColor);
   setColor('fontColor', s.fontColor);
   setColor('fillColor', s.fillColor);
   setColor('subColor', s.subColor);
@@ -243,7 +241,6 @@ bindNumber('subFontPx', 'subFontPxNum', 8, 80, (v) => ({ subFontPx: Math.round(v
 bindNumber('romFontPx', 'romFontPxNum', 8, 80, (v) => ({ romFontPx: Math.round(v) }), () => s.romFontPx);
 bindNumber('outlineWidth', 'outlineWidthNum', 0, 6, (v) => ({ outlineWidth: v, outline: v > 0 }), () => (s.outline ? s.outlineWidth : 0));
 
-// Avoid writing stale settings echoes into a native colour picker while it is open.
 const colorBusyUntil: Record<string, number> = {};
 
 function setColor(id: string, value: string) {
@@ -252,7 +249,7 @@ function setColor(id: string, value: string) {
   if (input.value.toLowerCase() !== value.toLowerCase()) input.value = value;
 }
 
-const bindColor = (id: string, key: 'fontColor' | 'fillColor' | 'outlineColor' | 'subColor' | 'romColor') => {
+const bindColor = (id: string, key: 'glassColor' | 'fontColor' | 'fillColor' | 'outlineColor' | 'subColor' | 'romColor') => {
   const input = el<HTMLInputElement>(id);
   let timer = 0;
   input.addEventListener('focus', () => {
@@ -261,29 +258,36 @@ const bindColor = (id: string, key: 'fontColor' | 'fillColor' | 'outlineColor' |
   input.addEventListener('blur', () => {
     colorBusyUntil[id] = performance.now() + 1000;
   });
-  const send = () => {
+  const send = (finalize = false) => {
     clearTimeout(timer);
     timer = 0;
-    if (key === 'fillColor' && s && s.dynamicColor) {
-      s.dynamicColor = false;
-      el<HTMLInputElement>('dynamicColor').checked = false;
-      patch({ dynamicColor: false, fillColor: input.value });
+    const value = input.value;
+    if (s[key].toLowerCase() === value.toLowerCase() && !(key === 'fillColor' && s.dynamicColor)) {
+      if (finalize) colorBusyUntil[id] = performance.now() + 1000;
       return;
     }
-    patch({ [key]: input.value });
+    if (key === 'fillColor' && s.dynamicColor) {
+      s.dynamicColor = false;
+      el<HTMLInputElement>('dynamicColor').checked = false;
+    }
+    s[key] = value;
+    colorBusyUntil[id] = finalize ? performance.now() + 1000 : Number.POSITIVE_INFINITY;
+    patch(key === 'fillColor' && !s.dynamicColor
+      ? { [key]: value, dynamicColor: false }
+      : { [key]: value });
   };
-  // The eyedropper fires `input` on every mouse move: send at most ~8 updates per second.
+  // Native color dialogs can emit rapid input events while the user drags in the picker.
   input.addEventListener('input', () => {
-    colorBusyUntil[id] = performance.now() + 600;
+    colorBusyUntil[id] = Number.POSITIVE_INFINITY;
     if (!timer) timer = window.setTimeout(send, 120);
   });
   input.addEventListener('change', () => {
-    colorBusyUntil[id] = performance.now() + 600;
-    send();
+    send(true);
   });
 };
 
 bindColor('fontColor', 'fontColor');
+bindColor('glassColor', 'glassColor');
 bindColor('fillColor', 'fillColor');
 bindColor('outlineColor', 'outlineColor');
 bindColor('subColor', 'subColor');

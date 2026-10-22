@@ -17,6 +17,7 @@ pub struct Geometry {
 pub struct Settings {
     /// Glass panel opacity, 0 (pure floating text) to 100.
     pub opacity: u8,
+    pub glass_color: String,
     pub font_px: u32,
     pub font_color: String,
     /// Colour of the karaoke sweep.
@@ -57,6 +58,7 @@ impl Default for Settings {
     fn default() -> Self {
         Settings {
             opacity: 35,
+            glass_color: "#24283a".into(),
             font_px: 30,
             font_color: "#ffffff".into(),
             fill_color: "#7dd3fc".into(),
@@ -124,6 +126,9 @@ impl Settings {
         if !valid_color(&self.font_color) {
             self.font_color = d.font_color.clone();
         }
+        if !valid_color(&self.glass_color) {
+            self.glass_color = d.glass_color.clone();
+        }
         if !valid_color(&self.fill_color) {
             self.fill_color = d.fill_color.clone();
         }
@@ -181,6 +186,7 @@ mod tests {
         s.merge(json!({
             "fontPx": 500,
             "opacity": 0,
+            "glassColor": "not a color",
             "fontColor": "red; x",
             "subColor": "red; x",
             "subFontPx": 100,
@@ -189,6 +195,7 @@ mod tests {
         })).unwrap();
         assert_eq!(s.font_px, 120);
         assert_eq!(s.opacity, 0);
+        assert_eq!(s.glass_color, "#24283a");
         assert_eq!(s.font_color, "#ffffff");
         assert_eq!(s.sub_color, "#b8e7ff");
         assert_eq!(s.sub_font_px, 80);
@@ -211,6 +218,7 @@ mod tests {
     fn old_files_with_missing_keys_still_load() {
         let s: Settings = serde_json::from_str(r#"{"opacity": 10}"#).unwrap();
         assert_eq!(s.opacity, 10);
+        assert_eq!(s.glass_color, "#24283a");
         assert_eq!(s.font_px, 30);
         assert_eq!(s.dynamic_color, false);
         // Translation sends lyric text to an online service, so it is opt-in.

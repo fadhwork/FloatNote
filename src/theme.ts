@@ -25,7 +25,15 @@ function outlineShadow(width: number, color: string): string {
 
 export function applyTheme(s: Settings): void {
   const root = document.documentElement.style;
+  const color = s.glassColor.replace(/^#/, '');
+  const hex = color.length === 3 || color.length === 4
+    ? [...color.slice(0, 3)].map((v) => `${v}${v}`).join('')
+    : color.slice(0, 6);
+  const rgb = hex.match(/.{2}/g)?.map((v) => Number.parseInt(v, 16));
   root.setProperty('--panel-alpha', String(s.opacity / 100));
+  if (rgb?.length === 3 && rgb.every(Number.isFinite)) {
+    root.setProperty('--glass-rgb', rgb.join(', '));
+  }
   root.setProperty('--font-px', `${s.fontPx}px`);
   root.setProperty('--font-color', s.fontColor);
   root.setProperty('--fill-color', s.fillColor);

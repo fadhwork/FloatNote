@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 
 export interface Settings {
   opacity: number;
+  glassColor: string;
   fontPx: number;
   fontColor: string;
   fillColor: string;
