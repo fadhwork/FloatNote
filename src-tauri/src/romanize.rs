@@ -62,8 +62,16 @@ pub fn source_hint(lines: &[String]) -> &'static str {
     }
 }
 
-/// Collect the transliteration entries (`[null, null, "<romanized>"]`) of a gtx response that
-/// was requested with `dt=rm`, joined with `sep`.
+/// A non-empty string at `idx` of a JSON array.
+fn str_at(seg: &Value, idx: usize) -> Option<&str> {
+    seg.get(idx).and_then(|v| v.as_str()).filter(|t| !t.trim().is_empty())
+}
+
+/// Collect the transliteration entries of a gtx response that was requested with `dt=rm`,
+/// joined with `sep`. An entry looks like `[null, null, "<romanized translation>", "<romanized
+/// source>"]`. We translate into English (already Latin letters), so the first reading is often
+/// missing and the reading of the *source* sits in the fourth slot; with only one reading present
+/// it is the source's.
 pub fn parse_translit(val: &Value, sep: &str) -> String {
     let mut parts: Vec<&str> = Vec::new();
     if let Some(segs) = val.get(0).and_then(|v| v.as_array()) {
@@ -72,7 +80,7 @@ pub fn parse_translit(val: &Value, sep: &str) -> String {
             if !no_text {
                 continue;
             }
-            if let Some(t) = seg.get(2).and_then(|v| v.as_str()) {
+            if let Some(t) = str_at(seg, 3).or_else(|| str_at(seg, 2)) {
                 parts.push(t);
             }
         }
@@ -157,9 +165,14 @@ pub async fn romanize_lines(
         batches.push(cur);
     }
 
+    let mut sample: Option<String> = None;
+    let sent = batches.iter().map(|b| b.len()).sum::<usize>();
     for batch in batches {
         let text = batch.iter().map(|&i| lines[i].trim()).collect::<Vec<_>>().join("\n");
         let val = request(client, &text, source).await?;
+        if sample.is_none() {
+            sample = Some(val.to_string().chars().take(3000).collect());
+        }
         match split_batch(&parse_translit(&val, ""), batch.len()) {
             Some(reads) => {
                 for (slot, r) in batch.iter().zip(reads) {
@@ -183,6 +196,13 @@ pub async fn romanize_lines(
             let _ = fs::create_dir_all(parent);
         }
         let _ = fs::write(&path, serde_json::to_string(&out).unwrap_or_default());
+    }
+    if sent > 0 && out.iter().all(|s| s.is_empty()) {
+        // Keep the first raw answer so the format can be checked.
+        let debug = dir.join("romanize-debug.txt");
+        let _ = fs::create_dir_all(dir);
+        let _ = fs::write(&debug, sample.unwrap_or_default());
+        return Err(format!("the service sent no readings (raw answer saved to {})", debug.display()));
     }
     Ok(out)
 }
@@ -217,6 +237,14 @@ mod tests {
         assert_eq!(text, "Konnichiwa\narigatō");
         assert_eq!(split_batch(&text, 2).unwrap(), vec!["Konnichiwa", "arigatō"]);
         assert!(split_batch(&text, 3).is_none());
+    }
+
+    #[test]
+    fn reads_the_source_reading_from_the_fourth_slot() {
+        let only_source = json!([[["Hello", "こんにちは", null, null, 3], [null, null, null, "Konnichiwa"]], null, "ja"]);
+        assert_eq!(parse_translit(&only_source, ""), "Konnichiwa");
+        let both = json!([[["Hello", "こんにちは", null, null, 3], [null, null, "Hello", "Konnichiwa"]], null, "ja"]);
+        assert_eq!(parse_translit(&both, ""), "Konnichiwa");
     }
 
     #[test]

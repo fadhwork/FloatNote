@@ -542,8 +542,9 @@ async function fetchRomanization(curKey: string, lines: Lyrics['lines']) {
     });
     shownSig = '';
     render();
-  } catch {
-    // Romanization is optional: keep showing the original lyrics.
+  } catch (err) {
+    // Romanization is optional: keep showing the original lyrics, but say why nothing appeared.
+    if (curKey === loadedKey && settings.romanize) toast(`Romanization failed: ${String(err).slice(0, 140)}`);
   }
 }
 
