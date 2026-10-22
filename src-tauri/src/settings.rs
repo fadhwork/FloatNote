@@ -36,6 +36,8 @@ pub struct Settings {
     pub first_run_done: bool,
     pub dynamic_color: bool,
     pub dual_subtitles: bool,
+    /// Show a Latin-letter reading under non-Latin lyrics (kanji, kana, hangul, ...).
+    pub romanize: bool,
     /// Target language for the second subtitle line (see TRANSLATE_LANGS).
     pub translate_to: String,
     /// Add FloatNote to the Windows startup list.
@@ -66,6 +68,7 @@ impl Default for Settings {
             first_run_done: false,
             dynamic_color: false,
             dual_subtitles: false,
+            romanize: false,
             translate_to: "en".into(),
             start_with_windows: false,
             idle_fade: true,

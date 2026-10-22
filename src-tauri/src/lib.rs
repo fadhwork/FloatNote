@@ -1,6 +1,7 @@
 mod lrc;
 mod lyrics;
 mod media;
+mod romanize;
 mod settings;
 mod translate;
 
@@ -302,6 +303,19 @@ async fn translate_lyrics(
     translate::translate_lines(&client, &dir, &key, &lines, &target).await
 }
 
+/// Latin-letter reading of lyric lines written in kanji, kana, hangul, Cyrillic, ... for singing
+/// along. One entry per input line; "" means "nothing to show for this line".
+#[tauri::command]
+async fn romanize_lyrics(
+    state: State<'_, AppState>,
+    key: String,
+    lines: Vec<String>,
+) -> Result<Vec<String>, String> {
+    let client = state.http.clone();
+    let dir = state.data_dir.clone();
+    romanize::romanize_lines(&client, &dir, &key, &lines).await
+}
+
 #[tauri::command]
 fn quit_app(app: AppHandle) {
     app.exit(0);
@@ -406,6 +420,7 @@ pub fn run() {
             media_control,
             get_album_art,
             translate_lyrics,
+            romanize_lyrics,
             quit_app
         ])
         .on_window_event(|window, event| {
