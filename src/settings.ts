@@ -17,15 +17,15 @@ app.innerHTML = `
   <section>
     <h2>Appearance</h2>
     <div class="row"><label for="opacity">Glass opacity</label>
-      <div class="ctl"><input id="opacity" type="range" min="0" max="100" /><span class="val" id="opacityVal">35%</span></div></div>
+      <div class="ctl"><input id="opacity" type="range" min="0" max="100" /><input id="opacityNum" class="num" type="number" min="0" max="100" step="1" aria-label="Glass opacity in percent" /></div></div>
     <div class="row"><label for="fontFamily">Font</label>
-      <div class="ctl"><select id="fontFamily"><option value="sans">Modern Sans</option><option value="display">Display</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></div></div>
-    <div class="row"><span class="lbl">Align</span><div class="ctl"><div class="seg icons" id="align">
+      <div class="ctl slider-col"><select id="fontFamily"><option value="sans">Modern Sans</option><option value="display">Display</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></div></div>
+    <div class="row"><span class="lbl">Align</span><div class="ctl slider-col"><div class="seg icons" id="align">
       <button data-v="left" title="Align left" aria-label="Align left"><svg viewBox="0 0 16 16"><path d="M2 3h12M2 6.5h8M2 10h12M2 13.5h8"/></svg></button>
       <button data-v="center" title="Align center" aria-label="Align center"><svg viewBox="0 0 16 16"><path d="M2 3h12M4 6.5h8M2 10h12M4 13.5h8"/></svg></button>
       <button data-v="right" title="Align right" aria-label="Align right"><svg viewBox="0 0 16 16"><path d="M2 3h12M6 6.5h8M2 10h12M6 13.5h8"/></svg></button>
     </div></div></div>
-    <div class="row"><span class="lbl">Lines</span><div class="ctl"><div class="seg" id="lines"><button data-v="1">1</button><button data-v="3">3</button><button data-v="5">5</button></div></div></div>
+    <div class="row"><span class="lbl">Lines</span><div class="ctl slider-col"><div class="seg" id="lines"><button data-v="1">1</button><button data-v="3">3</button><button data-v="5">5</button></div></div></div>
     <div class="row colors">
       <label class="sw">Text <input id="fontColor" type="color" aria-label="Text colour" /></label>
       <label class="sw">Sweep <input id="fillColor" type="color" aria-label="Sweep colour" /></label>
@@ -117,7 +117,7 @@ function setIfIdle(id: string, value: string) {
 function sync() {
   if (!s) return;
   setIfIdle('opacity', String(s.opacity));
-  el('opacityVal').textContent = `${s.opacity}%`;
+  setIfIdle('opacityNum', String(s.opacity));
   setIfIdle('fontPx', String(s.fontPx));
   setIfIdle('fontPxNum', String(s.fontPx));
   el<HTMLSelectElement>('fontFamily').value = s.fontFamily;
@@ -183,7 +183,6 @@ const bind = <K extends keyof Settings>(id: string, key: K, read: (i: HTMLInputE
   target.addEventListener('change', () => patch({ [key]: read(target) } as Partial<Settings>));
 };
 
-bind('opacity', 'opacity', (i) => Number(i.value));
 
 /** A slider with a number box next to it: both show the current value and edit the same setting. */
 function bindNumber(
@@ -218,6 +217,7 @@ function bindNumber(
   });
 }
 
+bindNumber('opacity', 'opacityNum', 0, 100, (v) => ({ opacity: Math.round(v) }), () => s.opacity);
 bindNumber('fontPx', 'fontPxNum', 12, 120, (v) => ({ fontPx: Math.round(v) }), () => s.fontPx);
 bindNumber('outlineWidth', 'outlineWidthNum', 0, 6, (v) => ({ outlineWidth: v, outline: v > 0 }), () => (s.outline ? s.outlineWidth : 0));
 
