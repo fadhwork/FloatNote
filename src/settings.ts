@@ -88,6 +88,7 @@ let s: Settings = {
   firstRunDone: true,
   dynamicColor: false,
   dualSubtitles: false,
+  romanize: false,
   translateTo: 'en',
   startWithWindows: false,
   idleFade: true,
