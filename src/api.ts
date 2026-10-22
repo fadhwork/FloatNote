@@ -18,6 +18,8 @@ export interface Settings {
   firstRunDone: boolean;
   dynamicColor: boolean;
   dualSubtitles: boolean;
+  /** Show a Latin-letter reading under non-Latin lyrics (kanji, kana, hangul, ...). */
+  romanize: boolean;
   /** Language of the second subtitle line (en, id, es, fr, de, pt, ja, ko, zh-CN). */
   translateTo: string;
   startWithWindows: boolean;
@@ -42,6 +44,8 @@ export interface Line {
   t: number;
   text: string;
   sub?: string;
+  /** Latin-letter reading of `text` (for singing along). */
+  rom?: string;
 }
 
 export interface Lyrics {
@@ -84,6 +88,8 @@ export const api = {
   /** One translated string per input line ("" = nothing to show). Cached on disk per song. */
   translateLyrics: (key: string, lines: string[], target: string) =>
     invoke<string[]>('translate_lyrics', { key, lines, target }),
+  romanizeLyrics: (key: string, lines: string[]) =>
+    invoke<string[]>('romanize_lyrics', { key, lines }),
   quit: () => invoke<void>('quit_app'),
 };
 

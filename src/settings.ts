@@ -46,6 +46,7 @@ app.innerHTML = `
     <div class="row"><label for="autostart">Start with Windows</label><div class="ctl"><label class="switch"><input id="autostart" type="checkbox" /><span></span></label></div></div>
     <div class="row"><label for="idleFade">Fade when idle</label><div class="ctl"><label class="switch"><input id="idleFade" type="checkbox" /><span></span></label></div></div>
     <div class="row"><label for="dynamicColor">Album accent</label><div class="ctl"><label class="switch"><input id="dynamicColor" type="checkbox" /><span></span></label></div></div>
+    <div class="row"><label for="romanize">Romanize (sing along)</label><div class="ctl"><label class="switch"><input id="romanize" type="checkbox" /><span></span></label></div></div>
     <div class="row"><label for="translate">Translate lyrics</label>
       <div class="ctl"><select id="translate"><option value="off">Off</option><option value="en">English</option><option value="id">Indonesia</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh-CN">中文</option></select></div></div>
   </section>
@@ -131,6 +132,7 @@ function sync() {
   setIfIdle('outlineWidth', String(ow));
   setIfIdle('outlineWidthNum', String(ow));
   el<HTMLInputElement>('karaoke').checked = s.karaoke;
+  el<HTMLInputElement>('romanize').checked = s.romanize;
   el<HTMLInputElement>('clickThrough').checked = s.clickThrough;
   el<HTMLInputElement>('dynamicColor').checked = s.dynamicColor;
   el<HTMLSelectElement>('translate').value = s.dualSubtitles ? s.translateTo : 'off';
@@ -262,6 +264,7 @@ bindColor('fillColor', 'fillColor');
 bindColor('outlineColor', 'outlineColor');
 
 bind('karaoke', 'karaoke', (i) => i.checked);
+bind('romanize', 'romanize', (i) => i.checked);
 bind('clickThrough', 'clickThrough', (i) => i.checked);
 bind('onTop', 'alwaysOnTop', (i) => i.checked);
 bind('dynamicColor', 'dynamicColor', (i) => i.checked);

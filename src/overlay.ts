@@ -112,6 +112,12 @@ function build(idx: number) {
         fillDur = Math.max(0.3, Math.min(gap * 0.9, Math.max(1.2, (text || '♪').length * 0.085)));
       }
       div.append(wrap);
+      if (settings.romanize && line?.rom && line.rom !== line.text) {
+        const romDiv = document.createElement('div');
+        romDiv.className = 'rom-line';
+        romDiv.textContent = line.rom;
+        div.append(romDiv);
+      }
       if (settings.dualSubtitles && line?.sub && line.sub !== line.text) {
         const subDiv = document.createElement('div');
         subDiv.className = 'sub-line';
@@ -253,6 +259,9 @@ function setLyrics(r: Lyrics) {
   if (settings.dualSubtitles && r.lines && r.lines.length > 0) {
     void fetchTranslation(loadedKey, r.lines);
   }
+  if (settings.romanize && r.lines && r.lines.length > 0) {
+    void fetchRomanization(loadedKey, r.lines);
+  }
 }
 
 async function fetchLyrics(m: Media, attempt: number) {
@@ -363,6 +372,7 @@ function toast(text: string) {
 function applySettings(s: Settings, first = false) {
   const lockChanged = !first && s.clickThrough !== settings.clickThrough;
   const translateChanged = !first && (s.dualSubtitles !== settings.dualSubtitles || s.translateTo !== settings.translateTo);
+  const romanChanged = !first && s.romanize !== settings.romanize;
   settings = s;
   applyTheme(s);
   document.body.classList.toggle('locked', s.clickThrough);
@@ -378,6 +388,10 @@ function applySettings(s: Settings, first = false) {
   if (translateChanged && lyrics && lyrics.lines.length > 0) {
     lyrics.lines.forEach((l) => (l.sub = ''));
     if (s.dualSubtitles) void fetchTranslation(loadedKey, lyrics.lines);
+  }
+  if (romanChanged && lyrics && lyrics.lines.length > 0) {
+    lyrics.lines.forEach((l) => (l.rom = ''));
+    if (s.romanize) void fetchRomanization(loadedKey, lyrics.lines);
   }
   render();
   syncLoop();
@@ -515,6 +529,21 @@ async function fetchTranslation(curKey: string, lines: Lyrics['lines']) {
     render();
   } catch {
     // Translation is optional: keep showing the original lyrics.
+  }
+}
+
+/** Latin-letter readings for kanji / kana / hangul / ... lines, so you can sing along. */
+async function fetchRomanization(curKey: string, lines: Lyrics['lines']) {
+  try {
+    const out = await api.romanizeLyrics(curKey, lines.map((l) => l.text));
+    if (curKey !== loadedKey || !lyrics || lyrics.lines !== lines || !settings.romanize) return;
+    lines.forEach((l, i) => {
+      l.rom = out[i]?.trim() || '';
+    });
+    shownSig = '';
+    render();
+  } catch {
+    // Romanization is optional: keep showing the original lyrics.
   }
 }
 
