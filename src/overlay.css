@@ -7,7 +7,7 @@
   --align: center;
   --outline: none;
   --radius: 12px;
-  --ctl-h: 100px; /* height reserved under the display for the two control rows */
+  --ctl-h: 72px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -110,8 +110,10 @@ html, body {
   transition: opacity 0.18s ease;
   color: #fff;
   font: 600 15px 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
-  background: rgba(20, 22, 32, 0.86);
-  border-radius: 999px;
+  background:
+    radial-gradient(130% 100% at 0% 0%, rgba(255, 255, 255, var(--panel-alpha)), transparent 55%),
+    linear-gradient(160deg, rgba(46, 52, 72, var(--panel-alpha)), rgba(14, 16, 24, var(--panel-alpha)));
+  border-radius: var(--radius);
 }
 body:not(.locked):hover .ctl,
 body.reveal .ctl { opacity: 1; }
@@ -141,7 +143,7 @@ button:focus-visible { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7); }
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 4px;
   padding-bottom: 3px;
   pointer-events: none;
 }
@@ -151,6 +153,10 @@ button:focus-visible { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7); }
   align-items: center;
   gap: 2px;
   padding: 3px;
+  width: 176px;
+  height: 30px;
+  justify-content: center;
+  border-radius: 10px;
 }
 
 /* time adjustment: compact, sleek */
@@ -158,13 +164,13 @@ button:focus-visible { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7); }
 #timing #offset { min-width: 36px; font-size: 11px; color: var(--fill-color); font-weight: 700; }
 
 /* music controls: compact icons */
-#music button.ico { width: 26px; height: 24px; display: grid; place-items: center; padding: 0; }
+#music button.ico { width: 22px; height: 22px; display: grid; place-items: center; padding: 0; }
 #music button.ico svg { width: 12px; height: 12px; fill: #fff; }
-#music button.big { width: 30px; height: 26px; }
-#music button.big svg { width: 14px; height: 14px; }
-#music #lock { padding: 2px 7px; font-size: 11px; }
-#music #gear { width: 24px; height: 24px; padding: 0; font-size: 13px; display: grid; place-items: center; }
-#music .sep { width: 1px; height: 14px; background: rgba(255, 255, 255, 0.2); margin: 0 3px; }
+#music button.big { width: 24px; height: 24px; }
+#music button.big svg { width: 13px; height: 13px; }
+#music #lock { padding: 2px 5px; font-size: 11px; }
+#music #gear { width: 22px; height: 22px; padding: 0; font-size: 13px; display: grid; place-items: center; }
+#music .sep { width: 1px; height: 14px; background: rgba(255, 255, 255, 0.2); margin: 0 2px; }
 /* show the icon for what a click will do */
 #playBtn .i-pause { display: none; }
 #playBtn.playing .i-play { display: none; }
@@ -173,30 +179,40 @@ button:focus-visible { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7); }
 /* small drag handle + resize grip, tucked into the display's corners */
 #handle {
   position: absolute;
-  top: 5px;
-  right: 7px;
-  width: 26px;
-  height: 14px;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 28px;
   z-index: 5;
   display: grid;
-  grid-template-columns: repeat(3, 3px);
-  grid-template-rows: repeat(2, 3px);
+  grid-template-columns: repeat(3, 2px);
+  grid-template-rows: repeat(2, 2px);
   gap: 3px;
   place-content: center;
+  background: transparent;
   cursor: grab;
 }
-#handle i { width: 3px; height: 3px; border-radius: 50%; background: rgba(255, 255, 255, 0.85); }
+#handle i { width: 2px; height: 2px; border-radius: 50%; background: #fff; }
 
 #grip {
   position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 28px;
+  height: 28px;
+  z-index: 5;
+  background: transparent;
+  cursor: nwse-resize;
+}
+#grip::after {
+  content: '';
+  position: absolute;
   right: 3px;
   bottom: 3px;
-  width: 15px;
-  height: 15px;
-  z-index: 5;
-  border-radius: 0 0 var(--radius) 0;
-  background: linear-gradient(135deg, transparent 50%, rgba(255, 255, 255, 0.75) 50% 60%, transparent 60% 74%, rgba(255, 255, 255, 0.75) 74% 84%, transparent 84%);
-  cursor: nwse-resize;
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(135deg, transparent 46%, #fff 47% 54%, transparent 55% 68%, #fff 69% 76%, transparent 77%);
+  pointer-events: none;
 }
 
 #toast {
@@ -230,22 +246,22 @@ body.drag-over {
 /* Romanization (sing along) */
 .rom-line {
   display: block;
-  font-size: calc(var(--font-px) * 0.52);
+  font-size: var(--rom-font-px);
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.94);
+  color: var(--rom-color);
   margin-top: 3px;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
   letter-spacing: 0.02em;
   line-height: 1.25;
 }
-#lyrics.one .rom-line { font-size: calc(var(--font-px) * 0.46); margin-top: 2px; }
+#lyrics.one .rom-line { font-size: var(--rom-font-px); margin-top: 2px; }
 
 /* Dual subtitle translation */
 .sub-line {
   display: block;
-  font-size: calc(var(--font-px) * 0.48);
+  font-size: var(--sub-font-px);
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--sub-color);
   margin-top: 4px;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   letter-spacing: 0.015em;
@@ -265,4 +281,4 @@ body.idle:not(.locked):hover .panel { opacity: var(--panel-alpha); }
 .line.cur .wrap { white-space: normal; text-wrap: balance; word-break: break-word; }
 #lyrics.one .line.cur { font-size: var(--font-px) !important; }
 #lyrics.one .line.cur .wrap { white-space: normal; text-wrap: balance; word-break: break-word; }
-#lyrics.one .sub-line { display: block; font-size: calc(var(--font-px) * 0.45); margin-top: 3px; }
+#lyrics.one .sub-line { display: block; font-size: var(--sub-font-px); margin-top: 3px; }

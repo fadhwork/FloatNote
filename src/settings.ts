@@ -33,6 +33,14 @@ app.innerHTML = `
     </div>
     <div class="row"><label for="fontPx">Text size</label>
       <div class="ctl"><input id="fontPx" type="range" min="14" max="72" /><input id="fontPxNum" class="num" type="number" min="12" max="120" step="1" aria-label="Text size in px" /></div></div>
+    <div class="row colors">
+      <label class="sw">Translation <input id="subColor" type="color" aria-label="Translation text colour" /></label>
+      <label class="sw">Sing along <input id="romColor" type="color" aria-label="Romanization text colour" /></label>
+    </div>
+    <div class="row"><label for="subFontPx">Translation size</label>
+      <div class="ctl"><input id="subFontPx" type="range" min="8" max="80" /><input id="subFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Translation text size in px" /></div></div>
+    <div class="row"><label for="romFontPx">Sing along size</label>
+      <div class="ctl"><input id="romFontPx" type="range" min="8" max="80" /><input id="romFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Romanization text size in px" /></div></div>
     <div class="row"><label for="outlineWidth">Outline</label>
       <div class="ctl"><input id="outlineWidth" type="range" min="0" max="6" step="0.5" /><input id="outlineWidthNum" class="num" type="number" min="0" max="6" step="0.5" aria-label="Outline size" /></div></div>
     <div class="row"><label for="karaoke">Karaoke sweep</label><div class="ctl"><label class="switch"><input id="karaoke" type="checkbox" /><span></span></label></div></div>
@@ -41,7 +49,6 @@ app.innerHTML = `
   <section>
     <h2>Behaviour</h2>
     <div class="row"><label for="clickThrough">Click-through (lock)</label><div class="ctl"><label class="switch"><input id="clickThrough" type="checkbox" /><span></span></label></div></div>
-    <p class="hint">Locked: only the handle, resize corner, pause and timing respond. <b>Ctrl+Alt+L</b> unlocks.</p>
     <div class="row"><label for="onTop">Always on top</label><div class="ctl"><label class="switch"><input id="onTop" type="checkbox" /><span></span></label></div></div>
     <div class="row"><label for="autostart">Start with Windows</label><div class="ctl"><label class="switch"><input id="autostart" type="checkbox" /><span></span></label></div></div>
     <div class="row"><label for="idleFade">Fade when idle</label><div class="ctl"><label class="switch"><input id="idleFade" type="checkbox" /><span></span></label></div></div>
@@ -76,6 +83,10 @@ let s: Settings = {
   fontPx: 30,
   fontColor: '#ffffff',
   fillColor: '#7dd3fc',
+  subColor: '#b8e7ff',
+  subFontPx: 14,
+  romColor: '#ffffff',
+  romFontPx: 16,
   outline: true,
   outlineColor: '#000000',
   outlineWidth: 2,
@@ -122,10 +133,16 @@ function sync() {
   setIfIdle('opacityNum', String(s.opacity));
   setIfIdle('fontPx', String(s.fontPx));
   setIfIdle('fontPxNum', String(s.fontPx));
+  setIfIdle('subFontPx', String(s.subFontPx));
+  setIfIdle('subFontPxNum', String(s.subFontPx));
+  setIfIdle('romFontPx', String(s.romFontPx));
+  setIfIdle('romFontPxNum', String(s.romFontPx));
   el<HTMLSelectElement>('fontFamily').value = s.fontFamily;
   
   setColor('fontColor', s.fontColor);
   setColor('fillColor', s.fillColor);
+  setColor('subColor', s.subColor);
+  setColor('romColor', s.romColor);
   setColor('outlineColor', s.outlineColor);
 
   // Outline size 0 means "no outline".
@@ -222,22 +239,28 @@ function bindNumber(
 
 bindNumber('opacity', 'opacityNum', 0, 100, (v) => ({ opacity: Math.round(v) }), () => s.opacity);
 bindNumber('fontPx', 'fontPxNum', 12, 120, (v) => ({ fontPx: Math.round(v) }), () => s.fontPx);
+bindNumber('subFontPx', 'subFontPxNum', 8, 80, (v) => ({ subFontPx: Math.round(v) }), () => s.subFontPx);
+bindNumber('romFontPx', 'romFontPxNum', 8, 80, (v) => ({ romFontPx: Math.round(v) }), () => s.romFontPx);
 bindNumber('outlineWidth', 'outlineWidthNum', 0, 6, (v) => ({ outlineWidth: v, outline: v > 0 }), () => (s.outline ? s.outlineWidth : 0));
 
-// While the colour popup / eyedropper is in use, settings echoes from the backend are stale
-// (they carry colours from a moment ago). Writing them back into the input resets the picker,
-// so colour inputs are left alone until ~0.6 s after the last change.
+// Avoid writing stale settings echoes into a native colour picker while it is open.
 const colorBusyUntil: Record<string, number> = {};
 
 function setColor(id: string, value: string) {
-  if (performance.now() < (colorBusyUntil[id] ?? 0)) return;
   const input = el<HTMLInputElement>(id);
+  if (document.activeElement === input || performance.now() < (colorBusyUntil[id] ?? 0)) return;
   if (input.value.toLowerCase() !== value.toLowerCase()) input.value = value;
 }
 
-const bindColor = (id: string, key: 'fontColor' | 'fillColor' | 'outlineColor') => {
+const bindColor = (id: string, key: 'fontColor' | 'fillColor' | 'outlineColor' | 'subColor' | 'romColor') => {
   const input = el<HTMLInputElement>(id);
   let timer = 0;
+  input.addEventListener('focus', () => {
+    colorBusyUntil[id] = Number.POSITIVE_INFINITY;
+  });
+  input.addEventListener('blur', () => {
+    colorBusyUntil[id] = performance.now() + 1000;
+  });
   const send = () => {
     clearTimeout(timer);
     timer = 0;
@@ -263,6 +286,8 @@ const bindColor = (id: string, key: 'fontColor' | 'fillColor' | 'outlineColor') 
 bindColor('fontColor', 'fontColor');
 bindColor('fillColor', 'fillColor');
 bindColor('outlineColor', 'outlineColor');
+bindColor('subColor', 'subColor');
+bindColor('romColor', 'romColor');
 
 bind('karaoke', 'karaoke', (i) => i.checked);
 bind('romanize', 'romanize', (i) => i.checked);
@@ -297,7 +322,7 @@ el('quit').addEventListener('click', () => void api.quit());
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
 
 async function runSearch() {
-  const q = el<HTMLInputElement>('query').value.trim();
+  const q = el<HTMLInputElement>('query').value.replace(/\s*\(lyrics\)/gi, '').trim();
   const box = el('results');
   if (!q) return;
   box.innerHTML = '<p class="hint">Searching…</p>';

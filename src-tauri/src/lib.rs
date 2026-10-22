@@ -329,7 +329,7 @@ fn quit_app(app: AppHandle) {
 fn spawn_window_loop(app: AppHandle) {
     std::thread::spawn(move || {
         let mut last_ignore: Option<bool> = None;
-        let mut last_inside = false;
+        let mut last_hovered = false;
         let mut tick: u32 = 0;
         let mut last_geom: Option<Geometry> = None;
         let mut dirty_since: Option<Instant> = None;
@@ -344,23 +344,34 @@ fn spawn_window_loop(app: AppHandle) {
             let state = app.state::<AppState>();
             let click_through = state.settings.lock().unwrap().click_through;
 
-            let inside = match (win.cursor_position(), win.inner_position(), win.scale_factor()) {
-                (Ok(c), Ok(p), Ok(sf)) if sf > 0.0 => {
+            let (hovered, inside_control) = match (
+                win.cursor_position(),
+                win.inner_position(),
+                win.inner_size(),
+                win.scale_factor(),
+            ) {
+                (Ok(c), Ok(p), Ok(size), Ok(sf)) if sf > 0.0 => {
                     let x = (c.x - p.x as f64) / sf;
                     let y = (c.y - p.y as f64) / sf;
-                    state.hit.lock().unwrap().iter().any(|r| r.contains(x, y))
+                    let hovered = x >= 0.0
+                        && y >= 0.0
+                        && x <= size.width as f64 / sf
+                        && y <= size.height as f64 / sf;
+                    let inside_control = hovered
+                        && state.hit.lock().unwrap().iter().any(|r| r.contains(x, y));
+                    (hovered, inside_control)
                 }
-                _ => true,
+                _ => (false, true),
             };
 
-            let want_ignore = click_through && !inside;
+            let want_ignore = click_through && !inside_control;
             if last_ignore != Some(want_ignore) {
                 let _ = win.set_ignore_cursor_events(want_ignore);
                 last_ignore = Some(want_ignore);
             }
-            if inside != last_inside {
-                last_inside = inside;
-                let _ = app.emit("hover", inside);
+            if hovered != last_hovered {
+                last_hovered = hovered;
+                let _ = app.emit("hover", hovered);
             }
 
             // Persist geometry ~700 ms after the user stops moving/resizing.

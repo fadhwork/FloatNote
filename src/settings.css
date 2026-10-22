@@ -26,15 +26,15 @@ body {
 /* breathing room after the banner and after the artist line */
 .top { display: flex; flex-direction: column; gap: 14px; padding: 4px 4px 10px; }
 .brand { text-align: center; font-size: 22px; font-weight: 800; letter-spacing: -0.015em; line-height: 1.1; color: var(--accent); }
-.np { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; }
-.marq { width: 100%; overflow: hidden; white-space: nowrap; }
+.np { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; }
+.marq { width: 100%; overflow: hidden; white-space: nowrap; text-align: center; }
 .marq b { display: inline-block; font-size: 13.5px; white-space: nowrap; }
 .marq.run b { animation: marquee var(--dur, 8s) ease-in-out infinite alternate; }
 @keyframes marquee { 0%, 14% { transform: translateX(0); } 86%, 100% { transform: translateX(var(--shift, 0)); } }
 @media (prefers-reduced-motion: reduce) {
   .marq.run b { animation: none; display: block; overflow: hidden; text-overflow: ellipsis; }
 }
-.np span { color: var(--muted); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np span { color: var(--muted); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
 
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: stretch; } /* both groups always the same height */
 

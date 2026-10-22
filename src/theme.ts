@@ -29,6 +29,10 @@ export function applyTheme(s: Settings): void {
   root.setProperty('--font-px', `${s.fontPx}px`);
   root.setProperty('--font-color', s.fontColor);
   root.setProperty('--fill-color', s.fillColor);
+  root.setProperty('--sub-color', s.subColor);
+  root.setProperty('--sub-font-px', `${s.subFontPx}px`);
+  root.setProperty('--rom-color', s.romColor);
+  root.setProperty('--rom-font-px', `${s.romFontPx}px`);
   root.setProperty('--font-family', FONTS[s.fontFamily] ?? FONTS.sans);
   root.setProperty('--align', s.align);
   root.setProperty('--outline', s.outline ? outlineShadow(s.outlineWidth, s.outlineColor) : 'none');

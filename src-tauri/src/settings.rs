@@ -21,6 +21,10 @@ pub struct Settings {
     pub font_color: String,
     /// Colour of the karaoke sweep.
     pub fill_color: String,
+    pub sub_color: String,
+    pub sub_font_px: u32,
+    pub rom_color: String,
+    pub rom_font_px: u32,
     pub outline: bool,
     pub outline_color: String,
     pub outline_width: f32,
@@ -56,6 +60,10 @@ impl Default for Settings {
             font_px: 30,
             font_color: "#ffffff".into(),
             fill_color: "#7dd3fc".into(),
+            sub_color: "#b8e7ff".into(),
+            sub_font_px: 14,
+            rom_color: "#ffffff".into(),
+            rom_font_px: 16,
             outline: true,
             outline_color: "#000000".into(),
             outline_width: 2.0,
@@ -91,6 +99,8 @@ impl Settings {
         let d = Settings::default();
         self.opacity = self.opacity.min(100);
         self.font_px = self.font_px.clamp(12, 120);
+        self.sub_font_px = self.sub_font_px.clamp(8, 80);
+        self.rom_font_px = self.rom_font_px.clamp(8, 80);
         self.outline_width = if self.outline_width.is_finite() {
             self.outline_width.clamp(0.0, 8.0)
         } else {
@@ -116,6 +126,12 @@ impl Settings {
         }
         if !valid_color(&self.fill_color) {
             self.fill_color = d.fill_color.clone();
+        }
+        if !valid_color(&self.sub_color) {
+            self.sub_color = d.sub_color.clone();
+        }
+        if !valid_color(&self.rom_color) {
+            self.rom_color = d.rom_color.clone();
         }
         if !valid_color(&self.outline_color) {
             self.outline_color = d.outline_color.clone();
@@ -162,11 +178,21 @@ mod tests {
     #[test]
     fn merge_clamps_and_validates() {
         let mut s = Settings::default();
-        s.merge(json!({"fontPx": 500, "opacity": 0, "fontColor": "red; x", "lines": 4}))
-            .unwrap();
+        s.merge(json!({
+            "fontPx": 500,
+            "opacity": 0,
+            "fontColor": "red; x",
+            "subColor": "red; x",
+            "subFontPx": 100,
+            "romFontPx": 2,
+            "lines": 4
+        })).unwrap();
         assert_eq!(s.font_px, 120);
         assert_eq!(s.opacity, 0);
         assert_eq!(s.font_color, "#ffffff");
+        assert_eq!(s.sub_color, "#b8e7ff");
+        assert_eq!(s.sub_font_px, 80);
+        assert_eq!(s.rom_font_px, 8);
         assert_eq!(s.lines, 5);
     }
 
@@ -189,5 +215,7 @@ mod tests {
         assert_eq!(s.dynamic_color, false);
         // Translation sends lyric text to an online service, so it is opt-in.
         assert_eq!(s.dual_subtitles, false);
+        assert_eq!(s.sub_font_px, 14);
+        assert_eq!(s.rom_font_px, 16);
     }
 }

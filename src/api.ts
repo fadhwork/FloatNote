@@ -6,6 +6,10 @@ export interface Settings {
   fontPx: number;
   fontColor: string;
   fillColor: string;
+  subColor: string;
+  subFontPx: number;
+  romColor: string;
+  romFontPx: number;
   outline: boolean;
   outlineColor: string;
   outlineWidth: number;

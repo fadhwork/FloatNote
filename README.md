@@ -21,7 +21,7 @@ Single portable `FloatNote.exe` — zero install, zero login, no telemetry.
 - **On-Hover Media Controls:** Quick **⏮ ⏯ ⏭** buttons and text size toggles appear right on the overlay.
 - **Smart Auto-Dim:** Smoothly fades down when music is paused, restoring instantly on playback.
 - **Drag & Drop `.lrc`:** Drag any custom or local `.lrc` file directly onto the HUD for immediate override.
-- **Extensive Styling:** Custom fonts, opacity, font size, stroke outlines, alignment, and line count (1, 3, or 5 lines).
+- **Extensive Styling:** Custom fonts, opacity, font size, stroke outlines, alignment, and line count (1, 3, or 5 lines), with independent translation and sing-along text colors and sizes.
 
 ---
 
