@@ -1,5 +1,5 @@
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import { api, on, type Lyrics, type Media, type Rect, type Settings } from './api';
+import { previewMode, getPreviewLyrics, previewMedia } from './preview';
 import { applyTheme } from './theme';
 import './overlay.css';
 
@@ -347,9 +347,17 @@ $('timing').addEventListener('click', (e) => {
 
 // ---- window controls -----------------------------------------------------------
 
-const win = getCurrentWindow();
-$('handle').addEventListener('mousedown', (e) => e.button === 0 && void win.startDragging());
-$('grip').addEventListener('mousedown', (e) => e.button === 0 && void win.startResizeDragging('SouthEast'));
+if (previewMode) {
+  document.body.classList.add('browser-preview');
+  $('handle').title = 'Browser preview — drag to move the browser window';
+  $('grip').title = 'Resize the browser window to preview layout';
+} else {
+  void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
+    const win = getCurrentWindow();
+    $('handle').addEventListener('mousedown', (e) => e.button === 0 && void win.startDragging());
+    $('grip').addEventListener('mousedown', (e) => e.button === 0 && void win.startResizeDragging('SouthEast'));
+  });
+}
 $('lock').addEventListener('click', () => void api.update({ clickThrough: true }));
 $('gear').addEventListener('click', () => void api.openSettings());
 document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -402,7 +410,14 @@ function applySettings(s: Settings, first = false) {
 
 async function init() {
   applySettings(await api.getSettings(), true);
-  setStatus('Play a song in Spotify, YouTube Music\nor any media player.');
+  if (previewMode) {
+    setStatus('BROWSER PREVIEW  ·  Midnight City — M83');
+    setLyrics(getPreviewLyrics());
+    loadedKey = previewMedia.key;
+    onMedia({ ...previewMedia });
+  } else {
+    setStatus('Play a song in Spotify, YouTube Music\nor any media player.');
+  }
   await on<Settings>('settings-changed', (s) => applySettings(s));
   await on<Media | null>('media', onMedia);
   await on<boolean>('hover', (inside) => document.body.classList.toggle('reveal', inside));

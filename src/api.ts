@@ -1,5 +1,9 @@
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { previewInvoke, previewListen, previewMode } from './preview';
+const call = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  if (previewMode) return previewInvoke<T>(command, args);
+  const { invoke } = await import('@tauri-apps/api/core');
+  return invoke<T>(command, args);
+};
 
 export interface Settings {
   opacity: number;
@@ -72,31 +76,36 @@ export interface Rect {
 }
 
 export const api = {
-  getSettings: () => invoke<Settings>('get_settings'),
-  update: (patch: Partial<Settings>) => invoke<Settings>('update_settings', { patch }),
-  setHitRegions: (rects: Rect[]) => invoke<void>('set_hit_regions', { rects }),
-  setOffset: (key: string, ms: number) => invoke<void>('set_offset', { key, ms }),
+  getSettings: () => call<Settings>('get_settings'),
+  update: (patch: Partial<Settings>) => call<Settings>('update_settings', { patch }),
+  setHitRegions: (rects: Rect[]) => call<void>('set_hit_regions', { rects }),
+  setOffset: (key: string, ms: number) => call<void>('set_offset', { key, ms }),
   getLyrics: (m: Media) =>
-    invoke<Lyrics>('get_lyrics', {
+    call<Lyrics>('get_lyrics', {
       key: m.key,
       title: m.title,
       artist: m.artist,
       album: m.album,
       durationMs: m.durationMs,
     }),
-  searchLyrics: (query: string) => invoke<Lyrics[]>('search_lyrics', { query }),
-  applyLyrics: (key: string, lyrics: Lyrics) => invoke<void>('apply_lyrics', { key, lyrics }),
-  openSettings: () => invoke<void>('open_settings'),
-  hideSettings: () => invoke<void>('hide_settings'),
-  mediaControl: (action: 'toggle' | 'next' | 'prev') => invoke<void>('media_control', { action }),
-  getAlbumArt: (title: string, artist: string) => invoke<string | null>('get_album_art', { title, artist }),
+  searchLyrics: (query: string) => call<Lyrics[]>('search_lyrics', { query }),
+  applyLyrics: (key: string, lyrics: Lyrics) => call<void>('apply_lyrics', { key, lyrics }),
+  openSettings: () => call<void>('open_settings'),
+  hideSettings: () => call<void>('hide_settings'),
+  mediaControl: (action: 'toggle' | 'next' | 'prev') => call<void>('media_control', { action }),
+  getAlbumArt: (title: string, artist: string) => call<string | null>('get_album_art', { title, artist }),
   /** One translated string per input line ("" = nothing to show). Cached on disk per song. */
   translateLyrics: (key: string, lines: string[], target: string) =>
-    invoke<string[]>('translate_lyrics', { key, lines, target }),
+    call<string[]>('translate_lyrics', { key, lines, target }),
   romanizeLyrics: (key: string, lines: string[]) =>
-    invoke<string[]>('romanize_lyrics', { key, lines }),
-  quit: () => invoke<void>('quit_app'),
+    call<string[]>('romanize_lyrics', { key, lines }),
+  quit: () => call<void>('quit_app'),
 };
 
-export const on = <T>(event: string, cb: (payload: T) => void) =>
-  listen<T>(event, (e) => cb(e.payload));
+export const on = <T>(event: string, cb: (payload: T) => void) => {
+  if (previewMode) {
+    const stop = previewListen<T>(event, cb);
+    return Promise.resolve(stop ?? (() => {}));
+  }
+  return import('@tauri-apps/api/event').then(({ listen }) => listen<T>(event, (e) => cb(e.payload)));
+};

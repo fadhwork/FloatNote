@@ -1,8 +1,11 @@
-//! LRCLIB client plus an on-disk cache so each song is only fetched once.
+//! LRCLIB and NetEase lyrics clients plus an on-disk cache so each song is only fetched once.
 
 use crate::lrc::{clean_artist, clean_title, parse_lrc, primary_artist, title_similarity, Line};
 use serde::{Deserialize, Serialize};
-use std::{fs, path::{Path, PathBuf}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 pub const UA: &str = concat!(
     "FloatNote/",
@@ -47,7 +50,10 @@ fn usable(r: &Remote) -> Option<LyricsResult> {
         approx: false,
     };
     if r.instrumental == Some(true) {
-        return Some(LyricsResult { instrumental: true, ..base });
+        return Some(LyricsResult {
+            instrumental: true,
+            ..base
+        });
     }
     let lines = parse_lrc(r.synced_lyrics.as_deref()?);
     if lines.is_empty() {
@@ -79,7 +85,10 @@ fn usable_plain(r: &Remote) -> Option<LyricsResult> {
     let lines = rows
         .into_iter()
         .enumerate()
-        .map(|(i, text)| Line { t: start + step * i as f64, text })
+        .map(|(i, text)| Line {
+            t: start + step * i as f64,
+            text,
+        })
         .collect();
     Some(LyricsResult {
         lines,
@@ -108,6 +117,191 @@ async fn search_raw(
     resp.json::<Vec<Remote>>()
         .await
         .map_err(|e| format!("bad LRCLIB response: {e}"))
+}
+
+#[derive(Deserialize, Debug)]
+struct NetEaseSearchResponse {
+    result: Option<NetEaseSearchResult>,
+}
+
+#[derive(Deserialize, Debug)]
+struct NetEaseSearchResult {
+    songs: Option<Vec<NetEaseSong>>,
+}
+
+#[derive(Deserialize, Debug)]
+struct NetEaseSong {
+    name: Option<String>,
+    artists: Option<Vec<NetEaseArtist>>,
+    duration: Option<u64>,
+    id: Option<u64>,
+}
+
+#[derive(Deserialize, Debug)]
+struct NetEaseArtist {
+    name: Option<String>,
+}
+
+fn netease_search_url(query: &str) -> String {
+    reqwest::Url::parse_with_params(
+        "https://music.163.com/api/search/get",
+        &[
+            ("s", query),
+            ("type", "1"),
+            ("limit", "10"),
+            ("offset", "0"),
+        ],
+    )
+    .expect("static NetEase URL and query parameters are valid")
+    .to_string()
+}
+
+fn netease_lyrics_url(id: u64) -> String {
+    reqwest::Url::parse_with_params(
+        "https://music.163.com/api/song/lyric",
+        &[("id", id.to_string()), ("lv", "-1"), ("tv", "-1")],
+    )
+    .expect("static NetEase URL and lyric id are valid")
+    .to_string()
+}
+
+#[derive(Deserialize, Debug)]
+struct NetEaseLyricResponse {
+    lrc: Option<NetEaseLyricText>,
+}
+
+#[derive(Deserialize, Debug)]
+struct NetEaseLyricText {
+    lyric: Option<String>,
+}
+
+async fn netease_search(client: &reqwest::Client, query: &str) -> Result<Vec<NetEaseSong>, String> {
+    let resp = client
+        .get(netease_search_url(query))
+        .header(reqwest::header::REFERER, "https://music.163.com/")
+        .send()
+        .await
+        .map_err(|e| format!("NetEase network error: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(format!("NetEase returned {}", resp.status()));
+    }
+    let response: NetEaseSearchResponse = resp
+        .json()
+        .await
+        .map_err(|e| format!("bad NetEase search response: {e}"))?;
+    Ok(response.result.and_then(|r| r.songs).unwrap_or_default())
+}
+
+async fn netease_lyrics(client: &reqwest::Client, id: u64) -> Result<Option<String>, String> {
+    let resp = client
+        .get(netease_lyrics_url(id))
+        .header(reqwest::header::REFERER, "https://music.163.com/")
+        .send()
+        .await
+        .map_err(|e| format!("NetEase lyric network error: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(format!("NetEase lyrics returned {}", resp.status()));
+    }
+    let response: NetEaseLyricResponse = resp
+        .json()
+        .await
+        .map_err(|e| format!("bad NetEase lyric response: {e}"))?;
+    let synced = response.lrc.and_then(|l| l.lyric).unwrap_or_default();
+    Ok((!parse_lrc(&synced).is_empty()).then_some(synced))
+}
+
+fn netease_artist(song: &NetEaseSong) -> String {
+    song.artists
+        .as_deref()
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|artist| artist.name.as_deref())
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn netease_match_score(song: &NetEaseSong, duration_s: f64, titles: &[String]) -> Option<f64> {
+    let song_title = song.name.as_deref().unwrap_or_default();
+    let similarity = titles
+        .iter()
+        .map(|candidate| title_similarity(candidate, song_title))
+        .fold(0.0, f64::max);
+    if song_title.trim().is_empty() || similarity < 0.6 {
+        return None;
+    }
+    let song_duration = song.duration.unwrap_or_default() as f64 / 1000.0;
+    let diff = if duration_s > 0.0 && song_duration > 0.0 {
+        (song_duration - duration_s).abs()
+    } else {
+        0.0
+    };
+    (diff <= 30.0).then_some(diff)
+}
+
+fn netease_result(song: &NetEaseSong, lyrics: String) -> Option<LyricsResult> {
+    let lines = parse_lrc(&lyrics);
+    if lines.is_empty() {
+        return None;
+    }
+    Some(LyricsResult {
+        lines,
+        instrumental: false,
+        source: "netease".into(),
+        title: song.name.clone().unwrap_or_default(),
+        artist: netease_artist(song),
+        duration: song.duration.unwrap_or_default() as f64 / 1000.0,
+        approx: false,
+    })
+}
+
+async fn fetch_netease(
+    client: &reqwest::Client,
+    title: &str,
+    artist: &str,
+    duration_s: f64,
+    titles: &[String],
+) -> Result<Option<LyricsResult>, String> {
+    let queries = [
+        format!("{} {}", title.trim(), artist.trim())
+            .trim()
+            .to_string(),
+        title.trim().to_string(),
+    ];
+    let mut last_error = None;
+    for query in queries.iter().filter(|query| !query.is_empty()) {
+        let songs = match netease_search(client, query).await {
+            Ok(songs) => songs,
+            Err(error) => {
+                last_error = Some(error);
+                continue;
+            }
+        };
+        let mut candidates: Vec<(f64, NetEaseSong)> = songs
+            .into_iter()
+            .filter_map(|song| {
+                netease_match_score(&song, duration_s, titles).map(|score| (score, song))
+            })
+            .collect();
+        candidates.sort_by(|a, b| a.0.total_cmp(&b.0));
+        for (_, song) in candidates {
+            let Some(id) = song.id else { continue };
+            match netease_lyrics(client, id).await {
+                Ok(Some(text)) => {
+                    if let Some(result) = netease_result(&song, text) {
+                        return Ok(Some(result));
+                    }
+                }
+                Ok(None) => {}
+                Err(error) => last_error = Some(error),
+            }
+        }
+    }
+    match last_error {
+        Some(error) => Err(error),
+        None => Ok(None),
+    }
 }
 
 /// Choose the best candidate. A result is only accepted if its title resembles one of
@@ -146,9 +340,8 @@ fn pick_best(
     best.map(|(_, r)| r)
 }
 
-/// Look a song up automatically: exact match first, then progressively looser searches
-/// (the same ones you would otherwise run by hand in Settings -> Lyrics).
-/// A failing step never stops the next one; an error is only returned if every step failed.
+/// Look up LRCLIB first, followed by NetEase when LRCLIB has no usable result.
+/// A failing provider never blocks the next fallback.
 pub async fn fetch(
     client: &reqwest::Client,
     title: &str,
@@ -156,9 +349,12 @@ pub async fn fetch(
     album: &str,
     duration_s: f64,
 ) -> Result<Option<LyricsResult>, String> {
-    let started = std::time::Instant::now();
     let cleaned = clean_title(title);
-    let name = if cleaned.is_empty() { title.trim().to_string() } else { cleaned };
+    let name = if cleaned.is_empty() {
+        title.trim().to_string()
+    } else {
+        cleaned
+    };
     let artist_clean = clean_artist(artist);
     let first_artist = primary_artist(&artist_clean);
     let mut last_err: Option<String> = None;
@@ -180,7 +376,12 @@ pub async fn fetch(
         if duration_s > 0.0 {
             q.push(("duration", (duration_s.round() as i64).to_string()));
         }
-        match client.get("https://lrclib.net/api/get").query(&q).send().await {
+        match client
+            .get("https://lrclib.net/api/get")
+            .query(&q)
+            .send()
+            .await
+        {
             Ok(resp) if resp.status().is_success() => {
                 if let Ok(r) = resp.json::<Remote>().await {
                     if let Some(res) = usable(&r) {
@@ -210,22 +411,30 @@ pub async fn fetch(
         if !l_title.is_empty() && !r_title.is_empty() {
             titles.push(r_title.clone());
             titles.push(l_title.clone());
-            attempts.push(vec![("track_name", r_title.clone()), ("artist_name", l_artist.clone())]);
-            attempts.push(vec![("track_name", l_title.clone()), ("artist_name", r_artist.clone())]);
+            attempts.push(vec![
+                ("track_name", r_title.clone()),
+                ("artist_name", l_artist.clone()),
+            ]);
+            attempts.push(vec![
+                ("track_name", l_title.clone()),
+                ("artist_name", r_artist.clone()),
+            ]);
             attempts.push(vec![("q", format!("{} {}", r_title, l_artist))]);
         }
     }
     // The raw text, exactly as you would type it into the search box by hand.
-    attempts.push(vec![("q", format!("{} {}", title.trim(), artist.trim()).trim().to_string())]);
+    attempts.push(vec![(
+        "q",
+        format!("{} {}", title.trim(), artist.trim())
+            .trim()
+            .to_string(),
+    )]);
     attempts.push(vec![("q", clean_title(&format!("{} {}", title, artist)))]);
     attempts.push(vec![("q", name.clone())]);
     attempts.push(vec![("q", title.trim().to_string())]);
 
     let mut any_ok = false;
     for params in attempts {
-        if started.elapsed() > std::time::Duration::from_secs(15) {
-            break; // do not keep the overlay on "Finding lyrics..." forever
-        }
         match search_raw(client, &params).await {
             Ok(list) => {
                 any_ok = true;
@@ -242,22 +451,40 @@ pub async fn fetch(
     if plain_fallback.is_some() {
         return Ok(plain_fallback);
     }
-    if any_ok {
-        Ok(None)
-    } else {
-        Err(last_err.unwrap_or_else(|| "lyrics lookup failed".to_string()))
+
+    // Keep LRCLIB first. NetEase is only consulted after the complete LRCLIB
+    // lookup has no usable synced or approximate plain-lyrics result.
+    match fetch_netease(client, title, artist, duration_s, &titles).await {
+        Ok(Some(result)) => Ok(Some(result)),
+        Ok(None) if any_ok => Ok(None),
+        Ok(None) => Err(last_err.unwrap_or_else(|| "lyrics lookup failed".to_string())),
+        Err(netease_error) => {
+            if any_ok {
+                Ok(None)
+            } else {
+                Err(last_err.unwrap_or(netease_error))
+            }
+        }
     }
 }
 
-/// Free-text search used by the manual "pick the right lyrics" box.
+/// Free-text LRCLIB search used by the manual "pick the right lyrics" box.
 pub async fn search(client: &reqwest::Client, query: &str) -> Result<Vec<LyricsResult>, String> {
     // "Official", "VEVO", "(Official Video)" ... only get in the way of a search.
     let cleaned = clean_title(query);
-    let q = if cleaned.trim().is_empty() { query.trim().to_string() } else { cleaned };
+    let q = if cleaned.trim().is_empty() {
+        query.trim().to_string()
+    } else {
+        cleaned
+    };
     let list = search_raw(client, &[("q", q)]).await?;
     // Synced versions first, then plain-only ones (flagged `approx`).
     let mut out: Vec<LyricsResult> = list.iter().filter_map(usable).collect();
-    out.extend(list.iter().filter(|r| usable(r).is_none()).filter_map(usable_plain));
+    out.extend(
+        list.iter()
+            .filter(|r| usable(r).is_none())
+            .filter_map(usable_plain),
+    );
     out.truncate(8);
     Ok(out)
 }
@@ -274,7 +501,8 @@ pub(crate) fn fnv1a(s: &str) -> u64 {
 }
 
 fn cache_file(dir: &Path, key: &str) -> PathBuf {
-    dir.join("lyrics-cache").join(format!("{:016x}.json", fnv1a(key)))
+    dir.join("lyrics-cache")
+        .join(format!("{:016x}.json", fnv1a(key)))
 }
 
 pub fn load_cached(dir: &Path, key: &str) -> Option<LyricsResult> {
@@ -312,16 +540,81 @@ mod tests {
     #[test]
     fn rejects_unrelated_songs_and_far_durations() {
         let titles = vec!["Hati-Hati di Jalan".to_string()];
-        let list = vec![remote("Totally Different", 200.0), remote("Hati Hati Di Jalan", 400.0)];
+        let list = vec![
+            remote("Totally Different", 200.0),
+            remote("Hati Hati Di Jalan", 400.0),
+        ];
         assert!(pick_best(&list, 200.0, &titles, usable).is_none());
     }
 
     #[test]
     fn prefers_closest_duration_among_matching_titles() {
         let titles = vec!["Hati-Hati di Jalan".to_string()];
-        let list = vec![remote("Hati Hati di Jalan", 190.0), remote("Hati-Hati di Jalan", 201.0)];
+        let list = vec![
+            remote("Hati Hati di Jalan", 190.0),
+            remote("Hati-Hati di Jalan", 201.0),
+        ];
         let best = pick_best(&list, 200.0, &titles, usable).unwrap();
         assert_eq!(best.duration, 201.0);
+    }
+
+    #[test]
+    fn netease_urls_encode_query_and_id() {
+        assert!(netease_search_url("Song & Artist").contains("Song+%26+Artist"));
+        assert!(netease_lyrics_url(123).contains("id=123"));
+    }
+
+    #[test]
+    fn parses_netease_search_and_timed_lyric_responses() {
+        let search: NetEaseSearchResponse = serde_json::from_str(
+            r#"{"result":{"songs":[{"id":123,"name":"Track","duration":200000,"artists":[{"name":"Artist"}]}]}}"#,
+        ).unwrap();
+        let song = search
+            .result
+            .unwrap()
+            .songs
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+        assert_eq!(song.id, Some(123));
+        assert_eq!(netease_artist(&song), "Artist");
+        assert_eq!(
+            netease_match_score(&song, 200.0, &["Track".into()]),
+            Some(0.0)
+        );
+
+        let lyric: NetEaseLyricResponse =
+            serde_json::from_str(r#"{"lrc":{"lyric":"[00:01.00]hello\n[00:02.00]world"}}"#)
+                .unwrap();
+        let text = lyric.lrc.unwrap().lyric.unwrap();
+        let result = netease_result(&song, text).unwrap();
+        assert_eq!(result.source, "netease");
+        assert_eq!(result.lines.len(), 2);
+        assert_eq!(result.duration, 200.0);
+    }
+
+    #[test]
+    fn rejects_unrelated_or_duration_mismatched_netease_results() {
+        let unrelated = NetEaseSong {
+            name: Some("Completely Different Song".into()),
+            artists: None,
+            duration: Some(200_000),
+            id: Some(1),
+        };
+        assert_eq!(
+            netease_match_score(&unrelated, 200.0, &["Wanted Song".into()]),
+            None
+        );
+        let mismatch = NetEaseSong {
+            name: Some("Wanted Song".into()),
+            duration: Some(300_000),
+            ..unrelated
+        };
+        assert_eq!(
+            netease_match_score(&mismatch, 200.0, &["Wanted Song".into()]),
+            None
+        );
     }
 
     #[test]
@@ -346,8 +639,12 @@ mod tests {
     #[test]
     fn too_short_plain_text_is_ignored() {
         let r = Remote {
-            track_name: None, artist_name: None, duration: None, instrumental: None,
-            synced_lyrics: None, plain_lyrics: Some("la\nla".into()),
+            track_name: None,
+            artist_name: None,
+            duration: None,
+            instrumental: None,
+            synced_lyrics: None,
+            plain_lyrics: Some("la\nla".into()),
         };
         assert!(usable_plain(&r).is_none());
     }

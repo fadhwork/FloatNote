@@ -4,6 +4,7 @@
   "description": "FloatNote - floating, click-through synced lyrics overlay for Windows",
   "scripts": {
     "dev": "vite",
+    "preview:browser": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "tauri": "tauri",
     "app:dev": "tauri dev",

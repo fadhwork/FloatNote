@@ -14,7 +14,7 @@ Single portable `FloatNote.exe` — zero install, zero login, no telemetry.
 ## ✨ Features
 
 - **Universal Media Sync:** Automatically connects to Spotify, Apple Music, YouTube (Chrome, Edge, Firefox), Tidal, and VLC via Windows SMTC.
-- **Accurate Synced Lyrics:** Powered by [LRCLIB](https://lrclib.net) with local disk caching for instant playback.
+- **Accurate Synced Lyrics:** Powered by [LRCLIB](https://lrclib.net), with NetEase as an automatic fallback when LRCLIB has no usable lyrics; results are cached locally for instant playback.
 - **Dual Subtitles & Translation:** Automatic real-time English translation for non-English songs (J-Pop, K-Pop, anime OSTs, Spanish, etc.).
 - **Dynamic Accent Colors:** Samples the vibrant color palette from the current track's album art.
 - **Click-Through HUD:** Toggle with **Ctrl+Alt+L** to make the overlay click-through so it never interrupts gameplay or work.
@@ -22,6 +22,8 @@ Single portable `FloatNote.exe` — zero install, zero login, no telemetry.
 - **Smart Auto-Dim:** Smoothly fades down when music is paused, restoring instantly on playback.
 - **Drag & Drop `.lrc`:** Drag any custom or local `.lrc` file directly onto the HUD for immediate override.
 - **Extensive Styling:** Custom fonts, opacity, font size, stroke outlines, alignment, and line count (1, 3, or 5 lines), with independent translation and sing-along text colors and sizes.
+
+> **Provider note:** LRCLIB is always tried first. NetEase is queried only when LRCLIB has no usable synced or approximate lyrics, and unrelated or substantially different-duration matches are rejected. Musixmatch is not currently integrated and remains a future enhancement.
 
 ---
 
@@ -46,6 +48,17 @@ Single portable `FloatNote.exe` — zero install, zero login, no telemetry.
 | **System Tray Icon** | Access Settings, toggle lyrics visibility, or reset position |
 
 ---
+
+## 🖥️ Browser UI Preview
+
+Run the overlay in a regular browser with mock settings, media, and sample lyrics:
+
+```bash
+npm ci
+npm run preview:browser
+```
+
+Open <http://127.0.0.1:1420/?preview> (the Vite dev server). The sample track advances automatically so the karaoke sweep is visible. Resize the browser to inspect responsive layout; settings and media actions are mocked locally. The normal Tauri app is unchanged when the `?preview` query flag is absent.
 
 ## 🛠️ Building from Source
 
