@@ -8,6 +8,7 @@ const lyricsEl = $('lyrics');
 const statusEl = $('status');
 const offsetEl = $('offset');
 const toastEl = $('toast');
+const titleEl = $('title');
 setStatus('FloatNote starting…');
 
 let settings: Settings;
@@ -288,6 +289,7 @@ function startTrack(m: Media) {
   offsetMs = (settings?.offsets && settings.offsets[m.key]) ?? 0;
   showOffset();
   lyricsEl.replaceChildren();
+  titleEl.textContent = [m.title, m.artist].filter(Boolean).join(' — ');
   setStatus(`${m.title}\n${m.artist}\nFinding lyrics…`);
   void fetchLyrics(m, 0);
 }
@@ -298,6 +300,7 @@ function onMedia(m: Media | null) {
     lyrics = null;
     anchor.playing = false;
     lyricsEl.replaceChildren();
+    titleEl.textContent = '';
     setStatus('Play a song in Spotify, YouTube Music\nor any media player.');
     syncLoop();
     return;

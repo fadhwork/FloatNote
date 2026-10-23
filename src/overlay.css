@@ -9,6 +9,10 @@
   --outline: none;
   --radius: 12px;
   --ctl-h: 72px;
+  --glass-bg:
+    radial-gradient(130% 100% at 0% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
+    radial-gradient(90% 80% at 100% 100%, rgba(255, 255, 255, 0.1), transparent 60%),
+    linear-gradient(160deg, rgba(var(--glass-rgb), 0.94), rgba(var(--glass-rgb), 0.72));
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,10 +43,7 @@ html, body {
   border-radius: var(--radius);
   opacity: var(--panel-alpha);
   transition: opacity 0.9s ease;
-  background:
-    radial-gradient(130% 100% at 0% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
-    radial-gradient(90% 80% at 100% 100%, rgba(255, 255, 255, 0.1), transparent 60%),
-    linear-gradient(160deg, rgba(var(--glass-rgb), 0.94), rgba(var(--glass-rgb), 0.72));
+  background: var(--glass-bg);
 }
 
 #lyrics {
@@ -52,7 +53,7 @@ html, body {
   flex-direction: column;
   justify-content: center;
   gap: 0.3em;
-  padding: 6px 24px;
+  padding: 22px 24px 6px;
   overflow: hidden;
   text-align: var(--align);
   transition: opacity 0.9s ease;
@@ -156,9 +157,22 @@ button:focus-visible { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7); }
   height: 30px;
   justify-content: center;
   border-radius: 10px;
-  background: rgba(var(--glass-rgb), var(--panel-alpha));
+  position: relative;
+  isolation: isolate;
+  background: transparent;
   opacity: 0;
   transition: opacity 0.18s ease;
+}
+/* Same glass as the lyric panel: same gradient, same opacity. Drawn on a layer so the buttons stay fully opaque. */
+#timing::before, #music::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--glass-bg);
+  opacity: var(--panel-alpha);
+  pointer-events: none;
 }
 
 /* time adjustment: compact, sleek */
@@ -288,3 +302,25 @@ body.idle:not(.locked):hover .panel { opacity: var(--panel-alpha); }
 #lyrics.one .line.cur { font-size: var(--font-px) !important; }
 #lyrics.one .line.cur .wrap { white-space: normal; text-wrap: balance; word-break: break-word; }
 #lyrics.one .sub-line { display: block; font-size: var(--sub-font-px); margin-top: 3px; }
+
+/* Track title: small, above the lyrics, clear of the drag handle */
+#title {
+  position: absolute;
+  top: 8px;
+  left: 48px;
+  right: 48px;
+  z-index: 2;
+  text-align: center;
+  font: 600 11px 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  color: var(--font-color);
+  opacity: 0.6;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  transition: opacity 0.9s ease;
+}
+body.idle #title { opacity: 0; }
+body.idle:not(.locked):hover #title { opacity: 0.6; }
