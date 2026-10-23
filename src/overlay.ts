@@ -107,10 +107,13 @@ function build(idx: number) {
       wrap.append(base);
       if (settings.karaoke && line && !lyrics.approx) {
         sweepCur = { wrap, base, text: text || '♪' };
-        const end = lines[i + 1]?.t ?? line.t + 4;
-        const gap = Math.max(0.3, end - line.t);
+        // The fill follows this lyric's full timestamp interval, then holds at 100%
+        // until the next line becomes active. This keeps long lines slow and prevents
+        // short lines from completing noticeably ahead of the audio.
+        const nextStart = lines[i + 1]?.t;
+        const interval = nextStart === undefined ? Math.max(2, Math.min(8, (text || '♪').length * 0.12)) : nextStart - line.t;
         fillStart = line.t;
-        fillDur = Math.max(0.3, Math.min(gap * 0.9, Math.max(1.2, (text || '♪').length * 0.085)));
+        fillDur = Math.max(0.35, interval);
       }
       div.append(wrap);
       if (settings.romanize && line?.rom && line.rom !== line.text) {
