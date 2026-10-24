@@ -14,7 +14,8 @@ Single portable `FloatNote.exe` — zero install, zero login, no telemetry.
 ## ✨ Features
 
 - **Universal Media Sync:** Automatically connects to Spotify, Apple Music, YouTube (Chrome, Edge, Firefox), Tidal, and VLC via Windows SMTC.
-- **Accurate Synced Lyrics:** Powered by [LRCLIB](https://lrclib.net), with NetEase as an automatic fallback when LRCLIB has no usable lyrics; results are cached locally for instant playback.
+- **Accurate Synced Lyrics:** Powered by [LRCLIB](https://lrclib.net), with NetEase as an automatic fallback when LRCLIB has no usable lyrics; successful lyrics and confirmed instrumentals are cached locally for instant playback.
+- **Recoverable Lyric Lookup:** Temporary provider failures and no-match results are not cached. Use the visible **Retry lookup** action to bypass the cache and try the providers again; manually selected lyrics remain authoritative until replaced.
 - **Dual Subtitles & Translation:** Automatic real-time English translation for non-English songs (J-Pop, K-Pop, anime OSTs, Spanish, etc.).
 - **Dynamic Accent Colors:** Samples the vibrant color palette from the current track's album art.
 - **Click-Through HUD:** Toggle with **Ctrl+Alt+L** to make the overlay click-through so it never interrupts gameplay or work.
@@ -38,6 +39,8 @@ Single portable `FloatNote.exe` — zero install, zero login, no telemetry.
 ---
 
 ## ⌨️ Shortcuts & Controls
+
+When automatic lookup cannot find lyrics, FloatNote shows a **Retry lookup** button. Retrying is user-triggered and bypasses the automatic cache; it does not replace manually selected or dropped `.lrc` lyrics unless you explicitly choose another version.
 
 | Shortcut / Action | Function |
 | :--- | :--- |

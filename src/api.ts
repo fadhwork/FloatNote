@@ -80,13 +80,14 @@ export const api = {
   update: (patch: Partial<Settings>) => call<Settings>('update_settings', { patch }),
   setHitRegions: (rects: Rect[]) => call<void>('set_hit_regions', { rects }),
   setOffset: (key: string, ms: number) => call<void>('set_offset', { key, ms }),
-  getLyrics: (m: Media) =>
+  getLyrics: (m: Media, refresh = false) =>
     call<Lyrics>('get_lyrics', {
       key: m.key,
       title: m.title,
       artist: m.artist,
       album: m.album,
       durationMs: m.durationMs,
+      refresh,
     }),
   searchLyrics: (query: string) => call<Lyrics[]>('search_lyrics', { query }),
   applyLyrics: (key: string, lyrics: Lyrics) => call<void>('apply_lyrics', { key, lyrics }),

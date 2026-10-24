@@ -198,11 +198,17 @@ async fn get_lyrics(
     artist: String,
     album: String,
     duration_ms: i64,
+    refresh: Option<bool>,
 ) -> Result<LyricsResult, String> {
     let dir = state.data_dir.clone();
     let client = state.http.clone();
-    if let Some(hit) = lyrics::load_cached(&dir, &key) {
-        return Ok(hit);
+    if let Some(manual) = lyrics::load_manual_cached(&dir, &key) {
+        return Ok(manual);
+    }
+    if !refresh.unwrap_or(false) {
+        if let Some(hit) = lyrics::load_cached(&dir, &key) {
+            return Ok(hit);
+        }
     }
     match lyrics::fetch(&client, &title, &artist, &album, duration_ms as f64 / 1000.0).await? {
         Some(found) => {

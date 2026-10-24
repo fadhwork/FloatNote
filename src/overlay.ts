@@ -6,6 +6,7 @@ import './overlay.css';
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const lyricsEl = $('lyrics');
 const statusEl = $('status');
+const retryEl = $('retryLyrics') as HTMLButtonElement;
 const offsetEl = $('offset');
 const toastEl = $('toast');
 const titleEl = $('title');
@@ -54,9 +55,10 @@ function findIndex(lines: Lyrics['lines'], pos: number): number {
   return ans;
 }
 
-function setStatus(text: string) {
+function setStatus(text: string, retry = false) {
   statusEl.textContent = text;
   statusEl.style.display = text ? 'grid' : 'none';
+  retryEl.hidden = !retry;
 }
 
 function build(idx: number) {
@@ -253,7 +255,7 @@ function setLyrics(r: Lyrics) {
     setStatus('♪  Instrumental');
   } else if (!r.lines || r.lines.length === 0) {
     const who = currentMedia ? `${currentMedia.title} — ${currentMedia.artist}` : 'this song';
-    setStatus(`Couldn't find synced lyrics automatically for\n${who}\n${diag()}\nYou can pick a version in Settings → Lyrics.`);
+    setStatus(`Couldn't find synced lyrics automatically for\n${who}\n${diag()}\nYou can pick a version in Settings → Lyrics.`, true);
   } else {
     setStatus('');
     render();
@@ -268,18 +270,18 @@ function setLyrics(r: Lyrics) {
   }
 }
 
-async function fetchLyrics(m: Media, attempt: number) {
+async function fetchLyrics(m: Media, attempt: number, refresh = false) {
   try {
-    const r = await api.getLyrics(m);
+    const r = await api.getLyrics(m, refresh);
     if (m.key === loadedKey) setLyrics(r);
   } catch (err) {
     if (m.key !== loadedKey) return;
     const reason = String(err).slice(0, 140);
     if (attempt < 3) {
       setStatus(`Lyrics lookup failed: ${reason}\nRetrying…\n${diag()}`);
-      setTimeout(() => m.key === loadedKey && fetchLyrics(m, attempt + 1), 8000);
+      window.setTimeout(() => m.key === loadedKey && void fetchLyrics(m, attempt + 1), 8000);
     } else {
-      setStatus(`Lyrics lookup failed: ${reason}\nCheck your internet connection.\n${diag()}`);
+      setStatus(`Lyrics lookup failed: ${reason}\nCheck your internet connection.\n${diag()}`, true);
     }
   }
 }
@@ -287,6 +289,7 @@ async function fetchLyrics(m: Media, attempt: number) {
 function startTrack(m: Media) {
   currentMedia = m;
   loadedKey = m.key;
+  retryEl.hidden = true;
   lyrics = null;
   shownSig = '';
   offsetMs = (settings?.offsets && settings.offsets[m.key]) ?? 0;
@@ -301,6 +304,7 @@ function onMedia(m: Media | null) {
   if (!m) {
     loadedKey = '';
     lyrics = null;
+    retryEl.hidden = true;
     anchor.playing = false;
     lyricsEl.replaceChildren();
     titleEl.textContent = '';
@@ -340,6 +344,13 @@ function adjust(deltaMs: number) {
     void api.setOffset(key, value);
   }, 300);
 }
+
+retryEl.addEventListener('click', () => {
+  if (!currentMedia || currentMedia.key !== loadedKey) return;
+  retryEl.hidden = true;
+  setStatus(`${currentMedia.title}\n${currentMedia.artist}\nRefreshing lyrics…`);
+  void fetchLyrics({ ...currentMedia }, 0, true);
+});
 
 $('timing').addEventListener('click', (e) => {
   const btn = (e.target as HTMLElement).closest('button');

@@ -506,13 +506,40 @@ fn cache_file(dir: &Path, key: &str) -> PathBuf {
 }
 
 pub fn load_cached(dir: &Path, key: &str) -> Option<LyricsResult> {
-    let text = fs::read_to_string(cache_file(dir, key)).ok()?;
+    load_cached_inner(dir, key, false)
+}
+
+/// Manual selections are durable overrides. Explicit provider refreshes may
+/// bypass automatic results, but must never silently replace a manual choice.
+pub fn load_manual_cached(dir: &Path, key: &str) -> Option<LyricsResult> {
+    load_cached_inner(dir, key, true)
+}
+
+fn load_cached_inner(dir: &Path, key: &str, manual_only: bool) -> Option<LyricsResult> {
+    let path = cache_file(dir, key);
+    let text = fs::read_to_string(&path).ok()?;
     let mut r: LyricsResult = serde_json::from_str(&text).ok()?;
-    r.source = "cache".into();
+    if manual_only && r.source != "manual" {
+        return None;
+    }
+    // Older versions could persist an empty `source: none` result. Treat those
+    // entries as misses so a temporary failure or early no-match can recover.
+    if !r.instrumental && r.lines.is_empty() {
+        let _ = fs::remove_file(path);
+        return None;
+    }
+    if !manual_only {
+        r.source = "cache".into();
+    }
     Some(r)
 }
 
 pub fn store_cached(dir: &Path, key: &str, r: &LyricsResult) {
+    // Only durable provider results and intentional instrumentals belong in the
+    // cache. Empty/no-match values are deliberately not persisted.
+    if !r.instrumental && r.lines.is_empty() {
+        return;
+    }
     let path = cache_file(dir, key);
     if let Some(parent) = path.parent() {
         let _ = fs::create_dir_all(parent);
@@ -634,6 +661,20 @@ mod tests {
         assert_eq!(p.lines[1].text, "two");
         assert!((p.lines[0].t - 12.0).abs() < 1e-9);
         assert!(p.lines[4].t < 200.0 && p.lines[3].t < p.lines[4].t);
+    }
+
+    #[test]
+    fn cache_ignores_empty_results_and_keeps_instrumentals() {
+        let dir = std::env::temp_dir().join(format!("floatnote-lyrics-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        let empty = LyricsResult { source: "none".into(), ..Default::default() };
+        store_cached(&dir, "empty", &empty);
+        assert!(load_cached(&dir, "empty").is_none());
+
+        let instrumental = LyricsResult { instrumental: true, source: "lrclib".into(), ..Default::default() };
+        store_cached(&dir, "instrumental", &instrumental);
+        assert!(load_cached(&dir, "instrumental").is_some());
+        let _ = fs::remove_dir_all(dir);
     }
 
     #[test]
