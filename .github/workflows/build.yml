@@ -19,14 +19,14 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run build
-      # Pure-logic Rust tests (LRC parser, settings) run without the Windows toolchain.
+      # Pure-logic Rust tests (LRC parser, lyrics providers, settings) run without the Windows toolchain.
       - uses: dtolnay/rust-toolchain@stable
       - name: Rust unit tests
         run: |
           mkdir -p /tmp/logic/src
-          cp src-tauri/src/lrc.rs src-tauri/src/settings.rs /tmp/logic/src/
-          printf 'pub mod lrc;\npub mod settings;\n' > /tmp/logic/src/lib.rs
-          printf '[package]\nname="logic"\nversion="0.0.0"\nedition="2021"\n[dependencies]\nserde={version="1",features=["derive"]}\nserde_json="1"\n' > /tmp/logic/Cargo.toml
+          cp src-tauri/src/lrc.rs src-tauri/src/lyrics.rs src-tauri/src/settings.rs /tmp/logic/src/
+          printf 'pub mod lrc;\npub mod lyrics;\npub mod settings;\n' > /tmp/logic/src/lib.rs
+          printf '[package]\nname="logic"\nversion="0.0.0"\nedition="2021"\n[dependencies]\nserde={version="1",features=["derive"]}\nserde_json="1"\nreqwest={version="0.12",default-features=false,features=["json","rustls-tls"]}\n' > /tmp/logic/Cargo.toml
           cd /tmp/logic && cargo test
 
   windows:

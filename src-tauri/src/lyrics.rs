@@ -157,9 +157,10 @@ fn netease_search_url(query: &str) -> String {
 }
 
 fn netease_lyrics_url(id: u64) -> String {
+    let id = id.to_string();
     reqwest::Url::parse_with_params(
         "https://music.163.com/api/song/lyric",
-        &[("id", id.to_string()), ("lv", "-1"), ("tv", "-1")],
+        &[("id", id.as_str()), ("lv", "-1"), ("tv", "-1")],
     )
     .expect("static NetEase URL and lyric id are valid")
     .to_string()
