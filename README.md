@@ -52,17 +52,6 @@ When automatic lookup cannot find lyrics, FloatNote shows a **Retry lookup** but
 
 ---
 
-## 🖥️ Browser UI Preview
-
-Run the overlay in a regular browser with mock settings, media, and sample lyrics:
-
-```bash
-npm ci
-npm run preview:browser
-```
-
-Open <http://127.0.0.1:1420/?preview> (the Vite dev server). The sample track advances automatically so the karaoke sweep is visible. Resize the browser to inspect responsive layout; settings and media actions are mocked locally. The normal Tauri app is unchanged when the `?preview` query flag is absent.
-
 ## 🛠️ Building from Source
 
 **Prerequisites:** [Node.js 20+](https://nodejs.org) and [Rust](https://rustup.rs) (MSVC toolchain).
