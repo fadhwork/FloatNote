@@ -76,6 +76,20 @@ The compiled binary will be located in `src-tauri/target/release/floatnote.exe`.
 
 Created and maintained by **fadhlihsani** ([@fadhwork](https://github.com/fadhwork)).
 
+FloatNote is built with AI assistance from **Claude** (Anthropic) and **GitHub Copilot**. Design, direction, testing and the final decisions are by the author.
+
+## 🙏 Acknowledgements
+
+FloatNote does not bundle any lyrics. It looks them up at runtime from these services; all lyrics belong to their respective rights holders.
+
+- [**LRCLIB**](https://lrclib.net) - free, open synced-lyrics database (primary source).
+- **NetEase Cloud Music** - fallback lyric source, through its unofficial public endpoints.
+- **Google Translate** - translation and romanization, through its unofficial public endpoint.
+- **iTunes Search API** - song metadata lookup.
+- [**Tauri**](https://tauri.app), [**Vite**](https://vitejs.dev) and the Rust and npm packages listed in `Cargo.lock` and `package-lock.json`, each under its own license.
+
+The unofficial endpoints are not affiliated with FloatNote and can change or stop working at any time. FloatNote is not affiliated with Spotify, Apple, Google, NetEase or any other service named here.
+
 ## 📄 License
 
 Distributed under the **Apache-2.0** License. See [`LICENSE`](LICENSE) for details.
