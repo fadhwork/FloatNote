@@ -185,7 +185,7 @@ fn set_offset(app: AppHandle, key: String, ms: i64) -> Result<(), String> {
     if ms == 0 {
         offsets.remove(&key);
     } else {
-        offsets.insert(key, ms.clamp(-30_000, 30_000));
+        offsets.insert(key, ms);
     }
     apply_patch(&app, json!({ "offsets": offsets })).map(|_| ())
 }

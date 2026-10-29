@@ -141,9 +141,6 @@ impl Settings {
         if !valid_color(&self.outline_color) {
             self.outline_color = d.outline_color.clone();
         }
-        for v in self.offsets.values_mut() {
-            *v = (*v).clamp(-30_000, 30_000);
-        }
     }
 
     /// Shallow-merge a JSON patch (camelCase keys) into the settings.

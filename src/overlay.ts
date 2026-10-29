@@ -332,7 +332,7 @@ function showOffset() {
 }
 
 function adjust(deltaMs: number) {
-  offsetMs = Math.max(-30000, Math.min(30000, deltaMs === 0 ? 0 : offsetMs + deltaMs));
+  offsetMs = deltaMs === 0 ? 0 : offsetMs + deltaMs;
   showOffset();
   render();
   if (!loadedKey) return;
