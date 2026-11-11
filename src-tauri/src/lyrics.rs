@@ -1,6 +1,8 @@
 //! LRCLIB and NetEase lyrics clients plus an on-disk cache so each song is only fetched once.
 
-use crate::lrc::{clean_artist, clean_title, parse_lrc, primary_artist, title_similarity, Line};
+use crate::lrc::{
+    clean_artist, clean_title, parse_lrc, primary_artist, title_similarity, yrc_to_lrc, Line,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -88,6 +90,7 @@ fn usable_plain(r: &Remote) -> Option<LyricsResult> {
         .map(|(i, text)| Line {
             t: start + step * i as f64,
             text,
+            ..Default::default()
         })
         .collect();
     Some(LyricsResult {
@@ -160,7 +163,7 @@ fn netease_lyrics_url(id: u64) -> String {
     let id = id.to_string();
     reqwest::Url::parse_with_params(
         "https://music.163.com/api/song/lyric",
-        &[("id", id.as_str()), ("lv", "-1"), ("tv", "-1")],
+        &[("id", id.as_str()), ("lv", "-1"), ("tv", "-1"), ("yv", "-1")],
     )
     .expect("static NetEase URL and lyric id are valid")
     .to_string()
@@ -169,6 +172,8 @@ fn netease_lyrics_url(id: u64) -> String {
 #[derive(Deserialize, Debug)]
 struct NetEaseLyricResponse {
     lrc: Option<NetEaseLyricText>,
+    /// Word-by-word timing, when NetEase has it for the song.
+    yrc: Option<NetEaseLyricText>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -208,7 +213,15 @@ async fn netease_lyrics(client: &reqwest::Client, id: u64) -> Result<Option<Stri
         .await
         .map_err(|e| format!("bad NetEase lyric response: {e}"))?;
     let synced = response.lrc.and_then(|l| l.lyric).unwrap_or_default();
-    Ok((!parse_lrc(&synced).is_empty()).then_some(synced))
+    let line_count = parse_lrc(&synced).len();
+    // Prefer the word-timed version, but only when it covers the song about as well as the line-timed one.
+    if let Some(word_timed) = response.yrc.and_then(|l| l.lyric).map(|y| yrc_to_lrc(&y)) {
+        let word_count = parse_lrc(&word_timed).len();
+        if word_count > 0 && word_count * 10 >= line_count * 8 {
+            return Ok(Some(word_timed));
+        }
+    }
+    Ok((line_count > 0).then_some(synced))
 }
 
 fn netease_artist(song: &NetEaseSong) -> String {

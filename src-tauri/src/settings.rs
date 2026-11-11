@@ -52,6 +52,8 @@ pub struct Settings {
     pub window: Option<Geometry>,
     /// Per-song timing offsets in milliseconds, keyed by "title|artist".
     pub offsets: HashMap<String, i64>,
+    /// What to do while a fullscreen app (game, fullscreen video) is in front: "clickthrough", "hide" or "off".
+    pub game_mode: String,
 }
 
 impl Default for Settings {
@@ -84,6 +86,7 @@ impl Default for Settings {
             idle_fade: true,
             window: None,
             offsets: HashMap::new(),
+            game_mode: "clickthrough".into(),
         }
     }
 }
@@ -115,6 +118,9 @@ impl Settings {
         };
         if !["sans", "display", "serif", "mono"].contains(&self.font_family.as_str()) {
             self.font_family = d.font_family.clone();
+        }
+        if !["off", "clickthrough", "hide"].contains(&self.game_mode.as_str()) {
+            self.game_mode = d.game_mode.clone();
         }
         if !["left", "center", "right"].contains(&self.align.as_str()) {
             self.align = d.align.clone();
@@ -209,6 +215,18 @@ mod tests {
         assert!(s.start_with_windows);
         s.merge(json!({"translateTo": "id"})).unwrap();
         assert_eq!(s.translate_to, "id");
+    }
+
+    #[test]
+    fn game_mode_defaults_and_validates() {
+        let mut s = Settings::default();
+        assert_eq!(s.game_mode, "clickthrough");
+        s.merge(json!({"gameMode": "hide"})).unwrap();
+        assert_eq!(s.game_mode, "hide");
+        s.merge(json!({"gameMode": "nonsense"})).unwrap();
+        assert_eq!(s.game_mode, "clickthrough");
+        let old: Settings = serde_json::from_str(r#"{"opacity": 10}"#).unwrap();
+        assert_eq!(old.game_mode, "clickthrough");
     }
 
     #[test]

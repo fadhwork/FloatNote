@@ -46,6 +46,8 @@ app.innerHTML = `
     <h2>Behaviour</h2>
     <div class="row"><label for="clickThrough">Click-through (lock)</label><div class="ctl"><label class="switch"><input id="clickThrough" type="checkbox" /><span></span></label></div></div>
     <div class="row"><label for="onTop">Always on top</label><div class="ctl"><label class="switch"><input id="onTop" type="checkbox" /><span></span></label></div></div>
+    <div class="row"><label for="gameMode" title="When a game or a fullscreen video is in front">Fullscreen apps</label>
+      <div class="ctl"><select id="gameMode"><option value="clickthrough">Click-through</option><option value="hide">Hide lyrics</option><option value="off">Do nothing</option></select></div></div>
     <div class="row"><label for="autostart">Start with Windows</label><div class="ctl"><label class="switch"><input id="autostart" type="checkbox" /><span></span></label></div></div>
     <div class="row"><label for="idleFade">Fade when idle</label><div class="ctl"><label class="switch"><input id="idleFade" type="checkbox" /><span></span></label></div></div>
     <div class="row"><label for="dynamicColor">Album accent</label><div class="ctl"><label class="switch"><input id="dynamicColor" type="checkbox" /><span></span></label></div></div>
@@ -63,6 +65,7 @@ app.innerHTML = `
 </section>
 
 <div class="actions">
+  <span class="version" id="version"></span>
   <button id="hide">Hide to tray</button>
   <button class="danger" id="quit">Quit</button>
 </div>
@@ -101,6 +104,7 @@ let s: Settings = {
   startWithWindows: false,
   idleFade: true,
   offsets: {},
+  gameMode: 'clickthrough',
 };
 
 let media: Media | null = null;
@@ -135,6 +139,7 @@ function sync() {
   setIfIdle('romFontPx', String(s.romFontPx));
   setIfIdle('romFontPxNum', String(s.romFontPx));
   el<HTMLSelectElement>('fontFamily').value = s.fontFamily;
+  el<HTMLSelectElement>('gameMode').value = s.gameMode;
   
   setColor('glassColor', s.glassColor);
   setColor('fontColor', s.fontColor);
@@ -306,6 +311,8 @@ el<HTMLSelectElement>('translate').addEventListener('change', (e) => {
   else patch({ dualSubtitles: true, translateTo: v });
 });
 
+el<HTMLSelectElement>('gameMode').addEventListener('change', (e) =>
+  patch({ gameMode: (e.target as HTMLSelectElement).value as Settings['gameMode'] }));
 el<HTMLSelectElement>('fontFamily').addEventListener('change', (e) =>
   patch({ fontFamily: (e.target as HTMLSelectElement).value as Settings['fontFamily'] }));
 el('align').addEventListener('click', (e) => {
@@ -331,7 +338,11 @@ async function runSearch() {
   if (!q) return;
   box.innerHTML = '<p class="hint">Searching…</p>';
   try {
-    const list = await api.searchLyrics(q);
+    const found = await api.searchLyrics(q);
+    // Closest to the length of the song that is playing first; untimed (plain-text) versions last.
+    const want = media && media.durationMs > 0 ? media.durationMs / 1000 : 0;
+    const gap = (l: Lyrics) => (l.approx ? 1e6 : 0) + (want && l.duration ? Math.abs(l.duration - want) : 1e3);
+    const list = want ? [...found].sort((a, b) => gap(a) - gap(b)) : found;
     box.replaceChildren();
     if (list.length === 0) {
       box.innerHTML = '<p class="hint">No synced lyrics found for that search.</p>';
@@ -344,7 +355,9 @@ async function runSearch() {
       const title = document.createElement('b');
       title.textContent = l.instrumental ? `${l.title} (instrumental)` : l.title;
       const sub = document.createElement('small');
-      sub.textContent = `${l.artist} · ${l.duration ? fmt(l.duration) : '?'} · ${l.lines.length} lines`;
+      const off = want && l.duration ? Math.round(Math.abs(l.duration - want)) : null;
+      const len = off === null ? '' : off === 0 ? ' · same length' : ` · ${off}s off`;
+      sub.textContent = `${l.artist} · ${l.duration ? fmt(l.duration) : '?'}${len} · ${l.lines.length} lines${l.approx ? ' · untimed' : ''}`;
       info.append(title, sub);
       const use = document.createElement('button');
       use.textContent = 'Use';
@@ -365,6 +378,37 @@ async function runSearch() {
 el('search').addEventListener('click', () => void runSearch());
 el('query').addEventListener('keydown', (e) => e.key === 'Enter' && void runSearch());
 
+// Show the other versions for the song that is playing as soon as Settings is looked at.
+let searchedFor = '';
+function autoSearch() {
+  if (!media || searchedFor === media.key) return;
+  searchedFor = media.key;
+  el<HTMLInputElement>('query').value = `${media.title} ${media.artist}`.trim();
+  void runSearch();
+}
+window.addEventListener('focus', autoSearch);
+
+// ---- version + update check ----------------------------------------------------------
+
+async function showVersion() {
+  const box = el('version');
+  try {
+    box.textContent = `v${await api.appVersion()}`;
+    const u = await api.checkUpdate();
+    if (u.newer) {
+      const link = document.createElement('button');
+      link.className = 'update';
+      link.textContent = `${u.latest} available`;
+      link.title = 'Open the download page';
+      link.addEventListener('click', () => void api.openReleasePage(u.url));
+      box.append(' · ', link);
+    }
+  } catch {
+    /* offline or rate-limited: the version number alone is fine */
+  }
+}
+void showVersion();
+
 // ---- boot ---------------------------------------------------------------------------
 
 void (async () => {
@@ -381,7 +425,9 @@ void (async () => {
       showMedia();
       if (m) el<HTMLInputElement>('query').value = `${m.title} ${m.artist}`.trim();
       el('results').replaceChildren();
+      searchedFor = '';
       sync();
+      if (document.hasFocus()) autoSearch();
     }
   });
 })();

@@ -21,6 +21,10 @@ Single portable `FloatNote.exe` — zero install, zero login, no telemetry.
 - **Click-Through HUD:** Toggle with **Ctrl+Alt+L** to make the overlay click-through so it never interrupts gameplay or work.
 - **On-Hover Media Controls:** Quick **⏮ ⏯ ⏭** buttons and text size toggles appear right on the overlay.
 - **Smart Auto-Dim:** Smoothly fades down when music is paused, restoring instantly on playback.
+- **Word-by-Word Karaoke:** When the lyrics carry word timings (enhanced LRC files, or NetEase when it has them), the sweep follows each word instead of the whole line.
+- **Game Mode:** When a game or fullscreen video is in front, FloatNote goes click-through (or hides, your choice in Settings) and comes back by itself.
+- **Lyric Versions:** Settings lists the other lyric versions for the song that is playing, closest in length first, so a wrong match is one click to fix.
+- **Update Check:** Settings shows your version and tells you when a newer release is out.
 - **Drag & Drop `.lrc`:** Drag any custom or local `.lrc` file directly onto the HUD for immediate override.
 - **Extensive Styling:** Custom fonts, opacity, font size, stroke outlines, alignment, and line count (1, 3, or 5 lines), with independent translation and sing-along text colors and sizes.
 
@@ -45,7 +49,7 @@ When automatic lookup cannot find lyrics, FloatNote shows a **Retry lookup** but
 | Shortcut / Action | Function |
 | :--- | :--- |
 | **Ctrl + Alt + L** | Toggle Click-Through Lock |
-| **Hover Overlay** | Reveal media controls, text sizing, and window controls |
+| **Hover Overlay** | Reveal media controls, timing buttons (±1 s, ±3 s, ±10 s) and window controls; they stay clickable while the HUD is click-through |
 | **Drag Grip (Top-Right)** | Reposition the HUD |
 | **Resize Grip (Bottom-Right)** | Resize window dimensions |
 | **System Tray Icon** | Access Settings, toggle lyrics visibility, or reset position |
@@ -86,6 +90,7 @@ FloatNote does not bundle any lyrics. It looks them up at runtime from these ser
 - **NetEase Cloud Music** - fallback lyric source, through its unofficial public endpoints.
 - **Google Translate** - translation and romanization, through its unofficial public endpoint.
 - **iTunes Search API** - song metadata lookup.
+- **GitHub** - the Settings window asks GitHub's public releases API for the newest version number (nothing about you is sent).
 - [**Tauri**](https://tauri.app), [**Vite**](https://vitejs.dev) and the Rust and npm packages listed in `Cargo.lock` and `package-lock.json`, each under its own license.
 
 The unofficial endpoints are not affiliated with FloatNote and can change or stop working at any time. FloatNote is not affiliated with Spotify, Apple, Google, NetEase or any other service named here.

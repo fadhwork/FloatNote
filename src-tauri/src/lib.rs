@@ -1,9 +1,11 @@
+mod fullscreen;
 mod lrc;
 mod lyrics;
 mod media;
 mod romanize;
 mod settings;
 mod translate;
+mod update;
 
 use lyrics::LyricsResult;
 use serde::Deserialize;
@@ -322,6 +324,82 @@ async fn romanize_lyrics(
     romanize::romanize_lines(&client, &dir, &key, &lines).await
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateInfo {
+    current: String,
+    latest: String,
+    url: String,
+    newer: bool,
+}
+
+#[tauri::command]
+fn app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+/// Ask GitHub for the newest release of FloatNote and compare it with the running version.
+#[tauri::command]
+async fn check_update(state: State<'_, AppState>) -> Result<UpdateInfo, String> {
+    let resp = state
+        .http
+        .get("https://api.github.com/repos/fadhwork/FloatNote/releases/latest")
+        .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+        .send()
+        .await
+        .map_err(|e| format!("update check failed: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(format!("GitHub returned {}", resp.status()));
+    }
+    let v: Value = resp.json().await.map_err(|e| format!("bad update response: {e}"))?;
+    let text = |key: &str| v.get(key).and_then(|x| x.as_str()).unwrap_or_default().to_string();
+    let latest = text("tag_name");
+    let current = env!("CARGO_PKG_VERSION").to_string();
+    Ok(UpdateInfo {
+        newer: update::is_newer(&latest, &current),
+        current,
+        latest,
+        url: text("html_url"),
+    })
+}
+
+#[cfg(windows)]
+fn open_url(url: &str) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    std::process::Command::new("cmd")
+        .args(["/C", "start", "", url])
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+#[cfg(not(windows))]
+fn open_url(url: &str) -> Result<(), String> {
+    std::process::Command::new("xdg-open")
+        .arg(url)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+/// Open FloatNote's own releases page in the browser (nothing else is allowed).
+#[tauri::command]
+fn open_release_page(url: String) -> Result<(), String> {
+    const PREFIX: &str = "https://github.com/fadhwork/FloatNote/releases";
+    if !url.starts_with(PREFIX) || url.contains(['"', ' ', '&', '^', '|', '<', '>']) {
+        return Err("refusing to open that link".into());
+    }
+    open_url(&url)
+}
+
+/// Parse an .lrc file's text with the same parser the lyric lookup uses (keeps word timings).
+#[tauri::command]
+fn parse_lrc_text(text: String) -> Vec<lrc::Line> {
+    lrc::parse_lrc(&text)
+}
+
 #[tauri::command]
 fn quit_app(app: AppHandle) {
     app.exit(0);
@@ -339,16 +417,38 @@ fn spawn_window_loop(app: AppHandle) {
         let mut tick: u32 = 0;
         let mut last_geom: Option<Geometry> = None;
         let mut dirty_since: Option<Instant> = None;
+        let mut game_lock = false; // a fullscreen app is in front and game mode wants click-through
+        let mut hidden_by_game = false; // game mode hid the overlay (so game mode should also bring it back)
 
         loop {
             std::thread::sleep(Duration::from_millis(33));
             tick = tick.wrapping_add(1);
             let Some(win) = app.get_webview_window("main") else { continue };
+            let state = app.state::<AppState>();
+
+            // Game mode: look for a fullscreen app a couple of times a second.
+            if tick % 15 == 0 {
+                let mode = state.settings.lock().unwrap().game_mode.clone();
+                let fullscreen = mode != "off" && fullscreen::foreground_fullscreen();
+                let want_lock = fullscreen && mode == "clickthrough";
+                let want_hide = fullscreen && mode == "hide";
+                if want_lock != game_lock {
+                    game_lock = want_lock;
+                    let _ = app.emit("game-mode", game_lock);
+                }
+                if want_hide && !hidden_by_game && win.is_visible().unwrap_or(false) {
+                    let _ = win.hide();
+                    hidden_by_game = true;
+                } else if !want_hide && hidden_by_game {
+                    let _ = win.show();
+                    hidden_by_game = false;
+                }
+            }
+
             if !win.is_visible().unwrap_or(false) {
                 continue;
             }
-            let state = app.state::<AppState>();
-            let click_through = state.settings.lock().unwrap().click_through;
+            let click_through = state.settings.lock().unwrap().click_through || game_lock;
 
             let (hovered, inside_control) = match (
                 win.cursor_position(),
@@ -438,6 +538,10 @@ pub fn run() {
             get_album_art,
             translate_lyrics,
             romanize_lyrics,
+            app_version,
+            check_update,
+            open_release_page,
+            parse_lrc_text,
             quit_app
         ])
         .on_window_event(|window, event| {

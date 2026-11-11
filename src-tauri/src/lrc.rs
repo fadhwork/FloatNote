@@ -2,19 +2,26 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct Line {
+/// One word of an enhanced-LRC line (`<mm:ss.xx>word`).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
+pub struct Word {
     /// Start time in seconds.
     pub t: f64,
     pub text: String,
 }
 
-/// Parse one leading `[mm:ss.xx]` tag. Returns (seconds, remainder of the line).
-fn take_time_tag(s: &str) -> Option<(f64, &str)> {
-    let s = s.strip_prefix('[')?;
-    let end = s.find(']')?;
-    let inner = &s[..end];
-    let rest = &s[end + 1..];
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
+pub struct Line {
+    /// Start time in seconds.
+    pub t: f64,
+    pub text: String,
+    /// Word timings, only when the source has them (enhanced LRC); empty for ordinary line-synced lyrics.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub words: Vec<Word>,
+}
+
+/// Parse the inside of a time tag: `mm:ss.xx` (also `mm:ss:xx` / `mm:ss`). Returns seconds.
+fn parse_time_inner(inner: &str) -> Option<f64> {
     let (mm, tail) = inner.split_once(':')?;
     if mm.is_empty() || !mm.bytes().all(|b| b.is_ascii_digit()) {
         return None;
@@ -36,7 +43,14 @@ fn take_time_tag(s: &str) -> Option<(f64, &str)> {
     } else {
         frac.parse::<f64>().ok()? / 10f64.powi(frac.len() as i32)
     };
-    Some((mins * 60.0 + secs + fraction, rest))
+    Some(mins * 60.0 + secs + fraction)
+}
+
+/// Parse one leading `[mm:ss.xx]` tag. Returns (seconds, remainder of the line).
+fn take_time_tag(s: &str) -> Option<(f64, &str)> {
+    let s = s.strip_prefix('[')?;
+    let end = s.find(']')?;
+    Some((parse_time_inner(&s[..end])?, &s[end + 1..]))
 }
 
 fn looks_like_time(s: &str) -> bool {
@@ -61,6 +75,49 @@ fn strip_word_tags(text: &str) -> String {
     }
     out.push_str(rest);
     out
+}
+
+/// Split `<mm:ss.xx>word<mm:ss.xx>word` into timed words. Returns an empty vec unless there are at
+/// least two timed words in non-decreasing order (anything else is not trustworthy word timing).
+fn parse_words(text: &str, line_t: f64, offset_s: f64) -> Vec<Word> {
+    fn flush(words: &mut Vec<Word>, t: f64, buf: &mut String) {
+        if buf.trim().is_empty() {
+            // Only spacing: keep it on the previous word so the text still adds up.
+            if let Some(last) = words.last_mut() {
+                last.text.push_str(buf);
+            }
+        } else {
+            words.push(Word { t, text: std::mem::take(buf) });
+        }
+        buf.clear();
+    }
+    let mut words: Vec<Word> = Vec::new();
+    let mut buf = String::new();
+    let mut cur_t = line_t;
+    let mut rest = text;
+    while let Some(start) = rest.find('<') {
+        buf.push_str(&rest[..start]);
+        match rest[start..].find('>') {
+            Some(end) if looks_like_time(&rest[start + 1..start + end]) => {
+                flush(&mut words, cur_t, &mut buf);
+                if let Some(t) = parse_time_inner(&rest[start + 1..start + end]) {
+                    cur_t = (t - offset_s).max(0.0);
+                }
+                rest = &rest[start + end + 1..];
+            }
+            _ => {
+                buf.push('<');
+                rest = &rest[start + 1..];
+            }
+        }
+    }
+    buf.push_str(rest);
+    flush(&mut words, cur_t, &mut buf);
+    let ordered = words.windows(2).all(|w| w[1].t >= w[0].t);
+    if words.len() < 2 || !ordered {
+        return Vec::new();
+    }
+    words
 }
 
 /// Parse synced lyrics. Returns an empty vec when the text has no timestamps.
@@ -89,14 +146,74 @@ pub fn parse_lrc(src: &str) -> Vec<Line> {
             .split_whitespace()
             .collect::<Vec<_>>()
             .join(" ");
+        // Word tags are absolute times, so they only fit a line with a single timestamp.
+        let words = if times.len() == 1 {
+            parse_words(line, (times[0] - offset_s).max(0.0), offset_s)
+        } else {
+            Vec::new()
+        };
         for t in times {
             out.push(Line {
                 t: (t - offset_s).max(0.0),
                 text: text.clone(),
+                words: words.clone(),
             });
         }
     }
     out.sort_by(|a, b| a.t.partial_cmp(&b.t).unwrap_or(std::cmp::Ordering::Equal));
+    out
+}
+
+/// `mm:ss.xx` for a millisecond count.
+fn lrc_stamp(ms: i64) -> String {
+    let ms = ms.max(0);
+    format!("{:02}:{:02}.{:02}", ms / 60_000, (ms % 60_000) / 1000, (ms % 1000) / 10)
+}
+
+/// If `s` starts with a `(start,duration,flag)` timing group, return (start_ms, rest after `)`).
+fn take_yrc_group(s: &str) -> Option<(i64, &str)> {
+    let inner = s.strip_prefix('(')?;
+    let end = inner.find(')')?;
+    let mut parts = inner[..end].split(',');
+    let start: i64 = parts.next()?.parse().ok()?;
+    let _dur: i64 = parts.next()?.parse().ok()?;
+    let _flag: i64 = parts.next()?.parse().ok()?;
+    if parts.next().is_some() {
+        return None;
+    }
+    Some((start, &inner[end + 1..]))
+}
+
+/// Convert NetEase's word-level format (`[lineStart,lineDur](wordStart,wordDur,0)word...`) into
+/// enhanced LRC (`[mm:ss.xx]<mm:ss.xx>word...`) so the normal parser, cache and overlay handle it.
+pub fn yrc_to_lrc(yrc: &str) -> String {
+    let mut out = String::new();
+    for raw in yrc.lines() {
+        let line = raw.trim();
+        let Some(body) = line.strip_prefix('[') else { continue };
+        let Some(close) = body.find(']') else { continue };
+        let mut head = body[..close].split(',');
+        let Some(line_start) = head.next().and_then(|v| v.parse::<i64>().ok()) else { continue };
+        let mut rest = &body[close + 1..];
+        let mut text = String::new();
+        let mut any = false;
+        while !rest.is_empty() {
+            if let Some((ws, after)) = take_yrc_group(rest) {
+                text.push_str(&format!("<{}>", lrc_stamp(ws)));
+                any = true;
+                rest = after;
+            } else {
+                let mut chars = rest.chars();
+                if let Some(c) = chars.next() {
+                    text.push(c);
+                }
+                rest = chars.as_str();
+            }
+        }
+        if any {
+            out.push_str(&format!("[{}]{}\n", lrc_stamp(line_start), text));
+        }
+    }
     out
 }
 
@@ -244,15 +361,15 @@ mod tests {
     fn parses_basic_and_multi_timestamps() {
         let l = parse_lrc("[ar:Someone]\n[00:12.50] Hello\n[01:02.5][00:30.00] Again <00:30.10>world\n");
         assert_eq!(l.len(), 3);
-        assert_eq!(l[0], Line { t: 12.5, text: "Hello".into() });
-        assert_eq!(l[1], Line { t: 30.0, text: "Again world".into() });
+        assert_eq!(l[0], Line { t: 12.5, text: "Hello".into(), ..Default::default() });
+        assert_eq!(l[1], Line { t: 30.0, text: "Again world".into(), ..Default::default() });
         assert_eq!(l[2].t, 62.5);
     }
 
     #[test]
     fn applies_offset_and_keeps_empty_lines() {
         let l = parse_lrc("[offset:500]\n[00:10.00]\n[00:12.000] Hi\n");
-        assert_eq!(l[0], Line { t: 9.5, text: "".into() });
+        assert_eq!(l[0], Line { t: 9.5, text: "".into(), ..Default::default() });
         assert_eq!(l[1].t, 11.5);
     }
 
@@ -306,5 +423,49 @@ mod tests {
     fn primary_artist_split() {
         assert_eq!(primary_artist("A, B & C"), "A");
         assert_eq!(primary_artist("Solo"), "Solo");
+    }
+
+    #[test]
+    fn enhanced_lrc_gives_word_timings() {
+        let l = parse_lrc("[00:12.00]<00:12.00>Hello <00:12.50>big <00:13.20>world\n");
+        assert_eq!(l.len(), 1);
+        assert_eq!(l[0].text, "Hello big world");
+        let w = &l[0].words;
+        assert_eq!(w.len(), 3);
+        assert_eq!((w[0].t, w[0].text.as_str()), (12.0, "Hello "));
+        assert_eq!((w[1].t, w[1].text.as_str()), (12.5, "big "));
+        assert_eq!((w[2].t, w[2].text.as_str()), (13.2, "world"));
+    }
+
+    #[test]
+    fn plain_and_unordered_lines_have_no_words() {
+        let l = parse_lrc("[00:01.00]Just a line\n[00:05.00]<00:06.00>late <00:05.50>early\n[00:09.00]<00:09.00>one word\n");
+        assert!(l[0].words.is_empty());
+        assert!(l[1].words.is_empty()); // out of order: not trusted
+        assert!(l[2].words.is_empty()); // a single tagged word is not word timing
+    }
+
+    #[test]
+    fn words_keep_their_text_when_serialised_back() {
+        let l = parse_lrc("[00:12.00]<00:12.00>Hi <00:12.40>there\n");
+        let json = serde_json::to_string(&l[0]).unwrap();
+        let back: Line = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, l[0]);
+        let plain = serde_json::to_string(&parse_lrc("[00:01.00]x")[0]).unwrap();
+        assert!(!plain.contains("words"));
+    }
+
+    #[test]
+    fn netease_word_format_becomes_enhanced_lrc() {
+        let yrc = "{\"t\":0,\"c\":[{\"tx\":\"x\"}]}\n[16210,3460](16210,670,0)still(16880,410,0) of(17290,370,0) the (oh)(17660,500,0) night\n[20000,1000](20000,500,0)a(20500,500,0) b\n";
+        let lrc = yrc_to_lrc(yrc);
+        let l = parse_lrc(&lrc);
+        assert_eq!(l.len(), 2);
+        assert_eq!(l[0].t, 16.21);
+        assert_eq!(l[0].text, "still of the (oh) night");
+        assert_eq!(l[0].words.len(), 4);
+        assert_eq!(l[0].words[1].t, 16.88);
+        assert_eq!(l[0].words[3].text, " night");
+        assert_eq!(l[1].words.len(), 2);
     }
 }

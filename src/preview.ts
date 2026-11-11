@@ -8,7 +8,7 @@ type Settings = {
   align: 'left' | 'center' | 'right'; lines: 1 | 3 | 5; karaoke: boolean; clickThrough: boolean;
   alwaysOnTop: boolean; firstRunDone: boolean; dynamicColor: boolean; dualSubtitles: boolean;
   romanize: boolean; translateTo: string; startWithWindows: boolean; idleFade: boolean;
-  offsets: Record<string, number>;
+  offsets: Record<string, number>; gameMode: string;
 };
 type Media = {
   key: string; title: string; artist: string; album: string; source: string; playing: boolean;
@@ -24,7 +24,7 @@ const defaults: Settings = {
   subColor: '#b8e7ff', subFontPx: 14, romColor: '#ffffff', romFontPx: 16, outline: true,
   outlineColor: '#000000', outlineWidth: 2, fontFamily: 'sans', align: 'center', lines: 3,
   karaoke: true, clickThrough: false, alwaysOnTop: true, firstRunDone: true, dynamicColor: false,
-  dualSubtitles: true, romanize: false, translateTo: 'en', startWithWindows: false, idleFade: false, offsets: {},
+  dualSubtitles: true, romanize: false, translateTo: 'en', startWithWindows: false, idleFade: false, offsets: {}, gameMode: 'clickthrough',
 };
 export const previewSettings: Settings = { ...defaults };
 export const previewMedia: Media = {
@@ -63,6 +63,10 @@ export async function previewInvoke<T>(command: string, args?: Record<string, un
       if (ms === 0) delete previewSettings.offsets[key]; else previewSettings.offsets[key] = ms;
       result = undefined; break;
     }
+    case 'app_version': result = '0.0.0-preview'; break;
+    case 'check_update': result = { current: '0.0.0-preview', latest: 'v0.0.0', url: '', newer: false }; break;
+    case 'open_release_page': result = undefined; break;
+    case 'parse_lrc_text': result = []; break;
     case 'get_lyrics': result = getPreviewLyrics(); break;
     case 'search_lyrics': result = [getPreviewLyrics()]; break;
     case 'apply_lyrics': {

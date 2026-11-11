@@ -34,6 +34,8 @@ export interface Settings {
   startWithWindows: boolean;
   idleFade: boolean;
   offsets: Record<string, number>;
+  /** What to do while a fullscreen app (game, fullscreen video) is in front. */
+  gameMode: 'off' | 'clickthrough' | 'hide';
 }
 
 export interface Media {
@@ -55,6 +57,15 @@ export interface Line {
   sub?: string;
   /** Latin-letter reading of `text` (for singing along). */
   rom?: string;
+  /** Word timings, only for lyrics that have them (enhanced LRC / word-timed sources). */
+  words?: { t: number; text: string }[];
+}
+
+export interface UpdateInfo {
+  current: string;
+  latest: string;
+  url: string;
+  newer: boolean;
 }
 
 export interface Lyrics {
@@ -100,6 +111,10 @@ export const api = {
     call<string[]>('translate_lyrics', { key, lines, target }),
   romanizeLyrics: (key: string, lines: string[]) =>
     call<string[]>('romanize_lyrics', { key, lines }),
+  appVersion: () => call<string>('app_version'),
+  checkUpdate: () => call<UpdateInfo>('check_update'),
+  openReleasePage: (url: string) => call<void>('open_release_page', { url }),
+  parseLrcText: (text: string) => call<Line[]>('parse_lrc_text', { text }),
   quit: () => call<void>('quit_app'),
 };
 

@@ -109,8 +109,10 @@ input.num::-webkit-inner-spin-button, input.num::-webkit-outer-spin-button { -we
 .result b, .result small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .result small { color: var(--muted); }
 
-/* hide / quit: one row, right aligned */
-.actions { display: flex; justify-content: flex-end; gap: 6px; }
+/* hide / quit: one row, right aligned; the version sits at the left of the same row */
+.actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.version { margin-right: auto; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.version .update { background: none; border: 0; padding: 0; margin: 0; min-height: 0; color: #7dd3fc; font-size: 11px; text-decoration: underline; cursor: pointer; }
 
 footer { display: flex; align-items: center; justify-content: center; padding: 0 2px; }
 .credit { color: var(--muted); font-size: 11px; text-align: center; }

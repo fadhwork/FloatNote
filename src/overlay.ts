@@ -26,6 +26,10 @@ let raf = 0;
 let shownSig = '';
 let fillStart = 0;
 let fillDur = 1;
+/** Word-timed current line: where in the line (0..1) each word starts. */
+let wordMap: { t: number[]; f: number[]; end: number } | null = null;
+/** A fullscreen app is in front and game mode wants the overlay click-through. */
+let gameLock = false;
 // Karaoke sweep: one clipped copy of the line per *visual* row, so wrapped lyrics fill
 // row by row (left to right, then the next row) instead of all rows at the same time.
 type SweepRow = { el: HTMLElement; left: number; width: number; top: number; bottom: number };
@@ -55,6 +59,35 @@ function findIndex(lines: Lyrics['lines'], pos: number): number {
   return ans;
 }
 
+/** For word-timed lines: time -> fraction of the line (by characters), so the sweep follows each word. */
+function buildWordMap(line: Lyrics['lines'][number], lineEnd: number | undefined) {
+  const words = line.words;
+  if (!words || words.length < 2) return null;
+  const sizes = words.map((w) => Math.max(1, Array.from(w.text).length));
+  const total = sizes.reduce((a, b) => a + b, 0);
+  const f: number[] = [];
+  let acc = 0;
+  for (const n of sizes) {
+    f.push(acc / total);
+    acc += n;
+  }
+  const t = words.map((w) => w.t);
+  const last = t[t.length - 1];
+  const end = Math.max(last + 0.2, Math.min(lineEnd ?? last + 1.5, last + 2));
+  return { t, f, end };
+}
+
+function wordProgress(m: { t: number[]; f: number[]; end: number }, pos: number): number {
+  const { t, f, end } = m;
+  if (pos <= t[0]) return 0;
+  if (pos >= end) return 1;
+  let i = t.length - 1;
+  while (i > 0 && t[i] > pos) i--;
+  const t1 = i + 1 < t.length ? t[i + 1] : end;
+  const f1 = i + 1 < f.length ? f[i + 1] : 1;
+  return f[i] + (f1 - f[i]) * Math.min(1, (pos - t[i]) / Math.max(0.05, t1 - t[i]));
+}
+
 function setStatus(text: string, retry = false) {
   statusEl.textContent = text;
   statusEl.style.display = text ? 'grid' : 'none';
@@ -70,6 +103,7 @@ function build(idx: number) {
   lyricsEl.replaceChildren();
   sweepRows = [];
   sweepCur = null;
+  wordMap = null;
 
   // Intro preview before the first line starts
   if (idx < 0) {
@@ -116,6 +150,7 @@ function build(idx: number) {
         const interval = nextStart === undefined ? Math.max(2, Math.min(8, (text || '♪').length * 0.12)) : nextStart - line.t;
         fillStart = line.t;
         fillDur = Math.max(0.35, interval);
+        wordMap = buildWordMap(line, nextStart);
       }
       div.append(wrap);
       if (settings.romanize && line?.rom && line.rom !== line.text) {
@@ -195,7 +230,7 @@ function render() {
     build(idx);
   }
   if (sweepRows.length) {
-    const p = Math.min(1, Math.max(0, (pos - fillStart) / fillDur));
+    const p = wordMap ? wordProgress(wordMap, pos) : Math.min(1, Math.max(0, (pos - fillStart) / fillDur));
     let dist = p * sweepTotal;
     for (const r of sweepRows) {
       const local = Math.min(1, Math.max(0, dist / r.width));
@@ -400,7 +435,7 @@ function applySettings(s: Settings, first = false) {
   const romanChanged = !first && s.romanize !== settings.romanize;
   settings = s;
   applyTheme(s);
-  document.body.classList.toggle('locked', s.clickThrough);
+  document.body.classList.toggle('locked', s.clickThrough || gameLock);
   shownSig = '';
   if (loadedKey && !offsetTimer) {
     offsetMs = (s?.offsets && s.offsets[loadedKey]) ?? 0;
@@ -435,6 +470,11 @@ async function init() {
   await on<Settings>('settings-changed', (s) => applySettings(s));
   await on<Media | null>('media', onMedia);
   await on<boolean>('hover', (inside) => document.body.classList.toggle('reveal', inside));
+  await on<boolean>('game-mode', (active) => {
+    gameLock = active;
+    document.body.classList.toggle('locked', settings.clickThrough || gameLock);
+    requestAnimationFrame(reportRegions);
+  });
   await on<{ key: string; lyrics: Lyrics }>('lyrics-override', (p) => {
     loadedKey = p.key; setLyrics(p.lyrics);
   });
@@ -471,18 +511,7 @@ document.addEventListener('drop', async (e) => {
   if (!file || !file.name.endsWith('.lrc')) return;
 
   const text = await file.text();
-  const parsedLines: { t: number; text: string }[] = [];
-  const regex = /\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/;
-
-  text.split('\n').forEach((line) => {
-    const match = regex.exec(line);
-    if (match) {
-      const m = parseInt(match[1], 10);
-      const s = parseInt(match[2], 10);
-      const ms = parseInt(match[3].padEnd(3, '0').slice(0, 3), 10);
-      parsedLines.push({ t: m * 60 + s + ms / 1000, text: match[4].trim() });
-    }
-  });
+  const parsedLines = await api.parseLrcText(text);
 
   if (parsedLines.length > 0 && loadedKey) {
     const customLyrics: Lyrics = {
