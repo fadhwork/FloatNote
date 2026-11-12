@@ -563,6 +563,12 @@ pub fn run() {
             let handle = app.handle().clone();
             let loaded = app.state::<AppState>().settings.lock().unwrap().clone();
 
+            // The exe name carries the version (FloatNote-v1.1.0.exe), so after an update the startup
+            // entry must point at the file that is running now.
+            if loaded.start_with_windows {
+                std::thread::spawn(|| set_autostart(true));
+            }
+
             // Tray ("hidden icon on the corner toolbar")
             let settings_i = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
             let lock_i = CheckMenuItem::with_id(

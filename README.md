@@ -7,7 +7,7 @@
 
 A modern, transparent, click-through **synced lyrics HUD** for Windows. It detects whatever music you are playing, renders synchronized lyrics with a karaoke sweep, and floats unobtrusively over your apps and games.
 
-Single portable `FloatNote.exe` — zero install, zero login, no telemetry.
+Single portable `FloatNote-vX.Y.Z.exe` — zero install, zero login, no telemetry.
 
 ---
 
@@ -35,7 +35,7 @@ Single portable `FloatNote.exe` — zero install, zero login, no telemetry.
 
 ## 🚀 Download & Setup
 
-1. Grab **[`FloatNote.exe`](https://github.com/fadhwork/FloatNote/releases/latest)** from the latest release.
+1. Grab **[`FloatNote-vX.Y.Z-portable.zip`](https://github.com/fadhwork/FloatNote/releases/latest)** from the latest release and unzip it. The version is in the file name.
 2. Place it in any folder and run it.
 3. Start playing music in your preferred player or browser tab.
 
