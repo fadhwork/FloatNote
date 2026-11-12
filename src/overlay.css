@@ -124,7 +124,7 @@ html, body {
 .ctl {
   opacity: 0;
   transition: opacity 0.18s ease;
-  color: var(--font-color);
+  color: var(--icon-color);
   font: 600 15px 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   background: transparent;
   border-radius: var(--radius);
@@ -161,24 +161,21 @@ button:focus-visible { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7); }
   padding-bottom: 3px;
   pointer-events: none;
 }
-#timing, #music {
+/* One glass menu holding both rows: timing on top, music below. */
+#menu {
   pointer-events: auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 3px;
+  padding: 4px 3px;
   width: 252px;
-  height: 30px;
-  justify-content: center;
-  border-radius: 10px;
+  border-radius: 12px;
   position: relative;
   isolation: isolate;
-  background: transparent;
-  opacity: 0;
-  transition: opacity 0.18s ease;
 }
 /* Same glass as the lyric panel: same gradient, same opacity. Drawn on a layer so the buttons stay fully opaque. */
-#timing::before, #music::before {
+#menu::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -187,6 +184,14 @@ button:focus-visible { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7); }
   background: var(--glass-bg);
   opacity: var(--panel-alpha);
   pointer-events: none;
+}
+#timing, #music {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 28px;
 }
 
 /* time adjustment: compact, sleek */
@@ -201,10 +206,6 @@ button:focus-visible { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7); }
 #music #lock { padding: 2px 5px; font-size: 11px; }
 #music #gear { width: 22px; height: 22px; padding: 0; font-size: 13px; display: grid; place-items: center; }
 #music .sep { width: 1px; height: 14px; background: rgba(255, 255, 255, 0.2); margin: 0 2px; }
-body:not(.locked):hover #timing,
-body:not(.locked):hover #music,
-body.reveal #timing,
-body.reveal #music { opacity: 1; }
 /* show the icon for what a click will do */
 #playBtn .i-pause { display: none; }
 #playBtn.playing .i-play { display: none; }
@@ -327,7 +328,7 @@ body.idle:not(.locked):hover .panel { opacity: var(--panel-alpha); }
   text-align: center;
   font: 600 11px 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   letter-spacing: 0.04em;
-  color: var(--font-color);
+  color: var(--title-color);
   opacity: 0.6;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
   white-space: nowrap;

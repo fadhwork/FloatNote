@@ -13,9 +13,10 @@ pub struct Geometry {
 }
 
 /// Settings a saved look (preset) may contain: appearance only, never behaviour, window or per-song data.
-pub const PRESET_KEYS: [&str; 16] = [
+pub const PRESET_KEYS: [&str; 18] = [
     "opacity", "glassColor", "fontPx", "fontColor", "fillColor", "subColor", "subFontPx", "romColor",
     "romFontPx", "outline", "outlineColor", "outlineWidth", "fontFamily", "align", "lines", "karaoke",
+    "titleColor", "iconColor",
 ];
 pub const MAX_PRESETS: usize = 12;
 
@@ -38,6 +39,10 @@ pub struct Settings {
     /// Colour of the karaoke sweep.
     pub fill_color: String,
     pub sub_color: String,
+    /// Colour of the small song / artist line above the lyrics.
+    pub title_color: String,
+    /// Colour of the icons and labels of the timing / music menu.
+    pub icon_color: String,
     pub sub_font_px: u32,
     pub rom_color: String,
     pub rom_font_px: u32,
@@ -82,6 +87,8 @@ impl Default for Settings {
             font_color: "#ffffff".into(),
             fill_color: "#7dd3fc".into(),
             sub_color: "#b8e7ff".into(),
+            title_color: "#ffffff".into(),
+            icon_color: "#ffffff".into(),
             sub_font_px: 14,
             rom_color: "#ffffff".into(),
             rom_font_px: 16,
@@ -162,6 +169,12 @@ impl Settings {
         }
         if !valid_color(&self.fill_color) {
             self.fill_color = d.fill_color.clone();
+        }
+        if !valid_color(&self.title_color) {
+            self.title_color = d.title_color.clone();
+        }
+        if !valid_color(&self.icon_color) {
+            self.icon_color = d.icon_color.clone();
         }
         if !valid_color(&self.sub_color) {
             self.sub_color = d.sub_color.clone();
@@ -262,6 +275,17 @@ mod tests {
         assert_eq!(s.presets.len(), MAX_PRESETS);
         let old: Settings = serde_json::from_str(r#"{"opacity": 10}"#).unwrap();
         assert!(old.presets.is_empty());
+    }
+
+    #[test]
+    fn title_and_icon_colors_default_and_validate() {
+        let mut s = Settings::default();
+        assert_eq!((s.title_color.as_str(), s.icon_color.as_str()), ("#ffffff", "#ffffff"));
+        s.merge(json!({"titleColor": "#ff00aa", "iconColor": "red"})).unwrap();
+        assert_eq!(s.title_color, "#ff00aa");
+        assert_eq!(s.icon_color, "#ffffff"); // not a hex colour: back to the default
+        let old: Settings = serde_json::from_str(r#"{"opacity": 10}"#).unwrap();
+        assert_eq!(old.title_color, "#ffffff");
     }
 
     #[test]

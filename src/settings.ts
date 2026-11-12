@@ -49,6 +49,7 @@ app.innerHTML = `
       <div class="ctl color-slider"><input id="subFontPx" type="range" min="8" max="80" /><input id="subFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Translation text size in px" /><label class="color-pick" title="Translation text colour"><input id="subColor" type="color" aria-label="Translation text colour" /></label></div></div>
     <div class="row slider-color"><label for="romFontPx">Romanize</label>
       <div class="ctl color-slider"><input id="romFontPx" type="range" min="8" max="80" /><input id="romFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Romanization text size in px" /><label class="color-pick" title="Sing-along text colour"><input id="romColor" type="color" aria-label="Romanization text colour" /></label></div></div>
+    <div class="row"><span class="lbl">Title &amp; icons</span><div class="ctl"><label class="color-pick" title="Song / artist title colour"><input id="titleColor" type="color" aria-label="Title colour" /></label><label class="color-pick" title="Menu icon colour"><input id="iconColor" type="color" aria-label="Icon colour" /></label></div></div>
     <div class="row"><label for="karaoke">Karaoke</label><div class="ctl"><label class="switch"><input id="karaoke" type="checkbox" /><span></span></label><label class="color-pick" title="Sweep colour"><input id="fillColor" type="color" aria-label="Sweep colour" /></label></div></div>
   </section>
 
@@ -94,6 +95,8 @@ let s: Settings = {
   fontColor: '#ffffff',
   fillColor: '#7dd3fc',
   subColor: '#b8e7ff',
+  titleColor: '#ffffff',
+  iconColor: '#ffffff',
   subFontPx: 14,
   romColor: '#ffffff',
   romFontPx: 16,
@@ -214,6 +217,8 @@ function sync() {
   setColor('fontColor', s.fontColor);
   setColor('fillColor', s.fillColor);
   setColor('subColor', s.subColor);
+  setColor('titleColor', s.titleColor);
+  setColor('iconColor', s.iconColor);
   setColor('romColor', s.romColor);
   setColor('outlineColor', s.outlineColor);
 
@@ -323,7 +328,7 @@ function setColor(id: string, value: string) {
   if (input.value.toLowerCase() !== value.toLowerCase()) input.value = value;
 }
 
-const bindColor = (id: string, key: 'glassColor' | 'fontColor' | 'fillColor' | 'outlineColor' | 'subColor' | 'romColor') => {
+const bindColor = (id: string, key: 'glassColor' | 'fontColor' | 'fillColor' | 'outlineColor' | 'subColor' | 'romColor' | 'titleColor' | 'iconColor') => {
   const input = el<HTMLInputElement>(id);
   let timer = 0;
   input.addEventListener('focus', () => {
@@ -366,6 +371,8 @@ bindColor('fillColor', 'fillColor');
 bindColor('outlineColor', 'outlineColor');
 bindColor('subColor', 'subColor');
 bindColor('romColor', 'romColor');
+bindColor('titleColor', 'titleColor');
+bindColor('iconColor', 'iconColor');
 
 bind('karaoke', 'karaoke', (i) => i.checked);
 bind('romanize', 'romanize', (i) => i.checked);

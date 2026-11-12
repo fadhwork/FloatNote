@@ -38,6 +38,8 @@ export function applyTheme(s: Settings): void {
   root.setProperty('--font-color', s.fontColor);
   root.setProperty('--fill-color', s.fillColor);
   root.setProperty('--sub-color', s.subColor);
+  root.setProperty('--title-color', s.titleColor);
+  root.setProperty('--icon-color', s.iconColor);
   root.setProperty('--sub-font-px', `${s.subFontPx}px`);
   root.setProperty('--rom-color', s.romColor);
   root.setProperty('--rom-font-px', `${s.romFontPx}px`);

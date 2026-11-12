@@ -12,6 +12,10 @@ export interface Settings {
   fontColor: string;
   fillColor: string;
   subColor: string;
+  /** Colour of the small song / artist line above the lyrics. */
+  titleColor: string;
+  /** Colour of the icons and labels of the timing / music menu. */
+  iconColor: string;
   subFontPx: number;
   romColor: string;
   romFontPx: number;

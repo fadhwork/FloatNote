@@ -22,7 +22,7 @@ Single portable `FloatNote.exe` — zero install, zero login, no telemetry.
 - **On-Hover Media Controls:** Quick **⏮ ⏯ ⏭** buttons and text size toggles appear right on the overlay.
 - **Smart Auto-Dim:** Smoothly fades down when music is paused, restoring instantly on playback.
 - **Word-by-Word Karaoke:** When the lyrics carry word timings (enhanced LRC files, or NetEase when it has them), the sweep follows each word instead of the whole line.
-- **Presets:** Six ready-made looks (Midnight Glass, Minimal, Karaoke Night, Cinema, Light Paper, Game HUD) plus your own: set it up once, name it, and it is one click away. Presets only change the look, never behaviour or window position.
+- **Presets:** Six ready-made looks (midnight, minimal, night, cinema, light, game) plus your own: set it up once, name it, and it is one click away. Presets only change the look, never behaviour or window position.
 - **Game Mode:** When a game or fullscreen video is in front, FloatNote goes click-through (or hides, your choice in Settings) and comes back by itself.
 - **Lyric Versions:** Settings lists the other lyric versions for the song that is playing, closest in length first, so a wrong match is one click to fix.
 - **Update Check:** Settings shows your version and tells you when a newer release is out.
@@ -50,7 +50,7 @@ When automatic lookup cannot find lyrics, FloatNote shows a **Retry lookup** but
 | Shortcut / Action | Function |
 | :--- | :--- |
 | **Ctrl + Alt + L** | Toggle Click-Through Lock |
-| **Hover Overlay** | Reveal media controls, timing buttons (±1 s, ±3 s, ±10 s) and window controls; they stay clickable while the HUD is click-through |
+| **Hover Overlay** | One glass menu with the timing buttons (±1 s, ±3 s, ±10 s) on top and the music and window controls below; it stays clickable while the HUD is click-through |
 | **Drag Grip (Top-Right)** | Reposition the HUD |
 | **Resize Grip (Bottom-Right)** | Resize window dimensions |
 | **System Tray Icon** | Access Settings, toggle lyrics visibility, or reset position |
