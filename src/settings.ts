@@ -67,7 +67,7 @@ app.innerHTML = `
     <div class="row"><label for="gameMode" title="When a game or a fullscreen video is in front">Fullscreen apps</label>
       <div class="ctl"><select id="gameMode"><option value="clickthrough">Click-through</option><option value="hide">Hide lyrics</option><option value="off">Do nothing</option></select></div></div>
     <div class="row"><label for="autostart">Start with Windows</label><div class="ctl"><label class="switch"><input id="autostart" type="checkbox" /><span></span></label></div></div>
-    <div class="row"><label for="idleFade">Fade when idle</label><div class="ctl"><label class="switch"><input id="idleFade" type="checkbox" /><span></span></label></div></div>
+    <div class="row"><label for="idleFade" title="Hides after 5 s paused or 3 s stopped; comes back when the music plays">Hide when paused</label><div class="ctl"><label class="switch"><input id="idleFade" type="checkbox" /><span></span></label></div></div>
     <div class="row"><label for="dynamicColor">Album accent</label><div class="ctl"><label class="switch"><input id="dynamicColor" type="checkbox" /><span></span></label></div></div>
     <div class="row"><label for="romanize">Romanize (sing along)</label><div class="ctl"><label class="switch"><input id="romanize" type="checkbox" /><span></span></label></div></div>
     <div class="row"><label for="translate">Translate lyrics</label>

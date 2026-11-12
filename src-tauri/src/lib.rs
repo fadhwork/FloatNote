@@ -1,6 +1,7 @@
 mod fullscreen;
 mod lrc;
 mod lyrics;
+mod playback;
 mod media;
 mod romanize;
 mod settings;
@@ -46,6 +47,8 @@ struct AppState {
     data_dir: PathBuf,
     lock_item: Mutex<Option<CheckMenuItem<Wry>>>,
     http: reqwest::Client,
+    /// What the music is doing, for hiding the overlay while nothing plays.
+    play: Mutex<playback::PlayState>,
 }
 
 impl AppState {
@@ -64,6 +67,7 @@ impl AppState {
             data_dir,
             lock_item: Mutex::new(None),
             http,
+            play: Mutex::new(playback::PlayState::new(Instant::now())),
         }
     }
 }
@@ -420,6 +424,8 @@ fn spawn_window_loop(app: AppHandle) {
         let mut dirty_since: Option<Instant> = None;
         let mut game_lock = false; // a fullscreen app is in front and game mode wants click-through
         let mut hidden_by_game = false; // game mode hid the overlay (so game mode should also bring it back)
+        let mut hidden_by_idle = false; // nothing is playing, so the overlay stepped aside
+        let mut idle_suppressed = false; // someone brought it back by hand: leave it until the music plays again
 
         loop {
             std::thread::sleep(Duration::from_millis(33));
@@ -441,8 +447,32 @@ fn spawn_window_loop(app: AppHandle) {
                     let _ = win.hide();
                     hidden_by_game = true;
                 } else if !want_hide && hidden_by_game {
-                    let _ = win.show();
+                    if !hidden_by_idle {
+                        let _ = win.show();
+                    }
                     hidden_by_game = false;
+                }
+
+                // Idle: hide a few seconds after the music pauses (5 s) or stops (3 s), show it when it plays again.
+                let idle_on = state.settings.lock().unwrap().idle_fade;
+                let (playing, hide_now) = {
+                    let play = state.play.lock().unwrap();
+                    (play.is_playing(), play.should_hide(Instant::now()))
+                };
+                if playing {
+                    idle_suppressed = false;
+                }
+                let want_idle = idle_on && hide_now && !idle_suppressed;
+                if hidden_by_idle && win.is_visible().unwrap_or(false) {
+                    // The window was shown by hand (tray, hotkey): leave it alone until the music plays again.
+                    hidden_by_idle = false;
+                    idle_suppressed = true;
+                } else if want_idle && !hidden_by_idle && !hidden_by_game && win.is_visible().unwrap_or(false) {
+                    let _ = win.hide();
+                    hidden_by_idle = true;
+                } else if !want_idle && hidden_by_idle {
+                    let _ = win.show();
+                    hidden_by_idle = false;
                 }
             }
 

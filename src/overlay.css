@@ -309,14 +309,6 @@ body.drag-over {
   line-height: 1.25;
 }
 
-/* Fade when idle: only the lyrics and glass fade; the window itself stays put. */
-body.idle #lyrics,
-body.idle #status,
-body.idle .panel { opacity: 0; }
-body.idle:not(.locked):hover #lyrics,
-body.idle:not(.locked):hover #status { opacity: 1; }
-body.idle:not(.locked):hover .panel { opacity: var(--panel-alpha); }
-
 /* Clean text wrap with locked font size (never shrinks below selected fontPx) */
 .line.cur { font-size: var(--font-px) !important; font-weight: 700; }
 .line.cur .wrap { white-space: normal; text-wrap: balance; word-break: break-word; }
@@ -343,5 +335,3 @@ body.idle:not(.locked):hover .panel { opacity: var(--panel-alpha); }
   pointer-events: none;
   transition: opacity 0.9s ease;
 }
-body.idle #title { opacity: 0; }
-body.idle:not(.locked):hover #title { opacity: 0.6; }

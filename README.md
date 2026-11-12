@@ -20,7 +20,7 @@ Single portable `FloatNote.exe` — zero install, zero login, no telemetry.
 - **Dynamic Accent Colors:** Samples the vibrant color palette from the current track's album art.
 - **Click-Through HUD:** Toggle with **Ctrl+Alt+L** to make the overlay click-through so it never interrupts gameplay or work.
 - **On-Hover Media Controls:** Quick **⏮ ⏯ ⏭** buttons and text size toggles appear right on the overlay.
-- **Smart Auto-Dim:** Smoothly fades down when music is paused, restoring instantly on playback.
+- **Hide When Paused:** The overlay steps aside 5 seconds after you pause and 3 seconds after the music stops, and comes back the moment it plays again (switch it off in Settings). Bring it back by hand from the tray icon or Ctrl+Alt+L.
 - **Word-by-Word Karaoke:** When the lyrics carry word timings (enhanced LRC files, or NetEase when it has them), the sweep follows each word instead of the whole line.
 - **Presets:** Six ready-made looks (midnight, minimal, night, cinema, light, game) plus your own: set it up once, name it, and it is one click away. Presets only change the look, never behaviour or window position.
 - **Game Mode:** When a game or fullscreen video is in front, FloatNote goes click-through (or hides, your choice in Settings) and comes back by itself.

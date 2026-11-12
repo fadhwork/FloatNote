@@ -19,7 +19,6 @@ let loadedKey = '';
 let offsetMs = 0;
 let offsetTimer = 0;
 let anchor = { pos: 0, at: performance.now(), playing: false };
-let lastActiveAt = performance.now(); // for fade-when-idle
 let raf = 0;
 
 // What is currently drawn, so we only rebuild the DOM when the line changes.
@@ -253,7 +252,6 @@ function frame() {
 /** Animate only while a song is actually playing; otherwise draw once and stop. */
 function syncLoop() {
   $('playBtn').classList.toggle('playing', anchor.playing);
-  updateIdle();
   const wantLoop = anchor.playing && !!lyrics && lyrics.lines.length > 0;
   if (wantLoop && !raf) raf = requestAnimationFrame(frame);
   if (!wantLoop) {
@@ -617,13 +615,3 @@ window.addEventListener('unhandledrejection', (e) => {
   console.error('FloatNote unhandled promise:', e.reason);
   if (!lyrics || lyrics.lines.length === 0) setStatus(`Error: ${String(e.reason).slice(0, 160)}`);
 });
-
-
-// ---- fade when idle: lyrics and glass fade out after a few seconds without playback ----
-function updateIdle() {
-  const active = !!loadedKey && anchor.playing;
-  if (active) lastActiveAt = performance.now();
-  const idle = !!settings?.idleFade && !active && performance.now() - lastActiveAt > 8000;
-  document.body.classList.toggle('idle', idle);
-}
-setInterval(updateIdle, 1000);

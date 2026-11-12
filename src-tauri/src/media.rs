@@ -4,8 +4,8 @@
 //! No login, token or API key needed.
 
 use serde::Serialize;
-use std::time::Duration;
-use tauri::{AppHandle, Emitter};
+use std::time::{Duration, Instant};
+use tauri::{AppHandle, Emitter, Manager};
 
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -207,6 +207,15 @@ pub fn spawn(app: AppHandle) {
         let mut last_was_none = false;
         loop {
             let state = reader.read();
+            // Tell the overlay's idle timer what the music is doing (playing / paused / stopped).
+            let kind = match &state {
+                None => crate::playback::Kind::Stopped,
+                Some(s) if s.playing => crate::playback::Kind::Playing,
+                Some(_) => crate::playback::Kind::Paused,
+            };
+            if let Some(app_state) = app.try_state::<crate::AppState>() {
+                app_state.play.lock().unwrap().update(Instant::now(), kind);
+            }
             if state.is_none() {
                 if !last_was_none {
                     let _ = app.emit("media", Option::<MediaState>::None);
