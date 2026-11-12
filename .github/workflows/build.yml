@@ -42,28 +42,28 @@ jobs:
       - run: npm ci
       - name: Build (no installer)
         run: npm run app:build
-      - name: Name the files after the version
+      - name: Name the zip after the version
         shell: pwsh
         run: |
           $v = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
           if ($env:GITHUB_REF -like 'refs/tags/v*' -and $env:GITHUB_REF_NAME -ne "v$v") {
             throw "Tag $env:GITHUB_REF_NAME does not match the app version v$v (src-tauri/Cargo.toml, tauri.conf.json, package.json)"
           }
-          "EXE=FloatNote-v$v.exe" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
           "ZIP=FloatNote-v$v-portable.zip" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
       - name: Collect exe
         shell: pwsh
-        run: Copy-Item src-tauri/target/release/floatnote.exe $env:EXE
+        run: Copy-Item src-tauri/target/release/floatnote.exe FloatNote.exe
       # Pure native Tauri build without post-link rcedit tampering to avoid Chrome Safe Browsing heuristics
       - name: Zip and checksums
         shell: pwsh
         run: |
-          Compress-Archive $env:EXE $env:ZIP -Force
-          $lines = foreach ($f in $env:EXE, $env:ZIP) {
+          Compress-Archive FloatNote.exe $env:ZIP -Force
+          $lines = foreach ($f in 'FloatNote.exe', $env:ZIP) {
             "$((Get-FileHash $f -Algorithm SHA256).Hash)  $f"
           }
           $lines | Out-File sha256.txt -Encoding ascii
-      # archive: false uploads the zip as-is: FloatNote-vX.Y.Z-portable.zip with only FloatNote-vX.Y.Z.exe inside.
+      # archive: false uploads the zip as-is: FloatNote-vX.Y.Z-portable.zip with only FloatNote.exe inside
+      # (the exe keeps one stable name so shortcuts, pins and startup entries survive updates).
       - uses: actions/upload-artifact@v7
         with:
           path: ${{ env.ZIP }}
