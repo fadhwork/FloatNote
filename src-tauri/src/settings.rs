@@ -12,6 +12,21 @@ pub struct Geometry {
     pub h: u32,
 }
 
+/// Settings a saved look (preset) may contain: appearance only, never behaviour, window or per-song data.
+pub const PRESET_KEYS: [&str; 16] = [
+    "opacity", "glassColor", "fontPx", "fontColor", "fillColor", "subColor", "subFontPx", "romColor",
+    "romFontPx", "outline", "outlineColor", "outlineWidth", "fontFamily", "align", "lines", "karaoke",
+];
+pub const MAX_PRESETS: usize = 12;
+
+/// A look the user saved. The values are applied through the normal settings patch, so they are
+/// validated exactly like anything typed into the settings window.
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct Preset {
+    pub name: String,
+    pub values: serde_json::Map<String, Value>,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -54,6 +69,8 @@ pub struct Settings {
     pub offsets: HashMap<String, i64>,
     /// What to do while a fullscreen app (game, fullscreen video) is in front: "clickthrough", "hide" or "off".
     pub game_mode: String,
+    /// Looks saved by the user (built-in templates live in the settings window).
+    pub presets: Vec<Preset>,
 }
 
 impl Default for Settings {
@@ -87,6 +104,7 @@ impl Default for Settings {
             window: None,
             offsets: HashMap::new(),
             game_mode: "clickthrough".into(),
+            presets: Vec::new(),
         }
     }
 }
@@ -119,6 +137,13 @@ impl Settings {
         if !["sans", "display", "serif", "mono"].contains(&self.font_family.as_str()) {
             self.font_family = d.font_family.clone();
         }
+        let mut seen = std::collections::HashSet::new();
+        self.presets.retain_mut(|p| {
+            p.name = p.name.trim().chars().take(24).collect();
+            p.values.retain(|k, _| PRESET_KEYS.contains(&k.as_str()));
+            !p.name.is_empty() && !p.values.is_empty() && seen.insert(p.name.to_lowercase())
+        });
+        self.presets.truncate(MAX_PRESETS);
         if !["off", "clickthrough", "hide"].contains(&self.game_mode.as_str()) {
             self.game_mode = d.game_mode.clone();
         }
@@ -215,6 +240,28 @@ mod tests {
         assert!(s.start_with_windows);
         s.merge(json!({"translateTo": "id"})).unwrap();
         assert_eq!(s.translate_to, "id");
+    }
+
+    #[test]
+    fn saved_looks_are_cleaned_and_limited() {
+        let mut s = Settings::default();
+        s.merge(json!({"presets": [
+            {"name": "  Night  ", "values": {"fontPx": 40, "clickThrough": true, "opacity": 20}},
+            {"name": "night", "values": {"fontPx": 10}},
+            {"name": "", "values": {"fontPx": 10}},
+            {"name": "Only junk", "values": {"alwaysOnTop": false}},
+            {"name": "A very long name that goes past the limit", "values": {"lines": 3}}
+        ]})).unwrap();
+        assert_eq!(s.presets.len(), 2);
+        assert_eq!(s.presets[0].name, "Night");
+        assert!(s.presets[0].values.get("clickThrough").is_none()); // behaviour is never stored in a look
+        assert_eq!(s.presets[0].values.len(), 2);
+        assert_eq!(s.presets[1].name.chars().count(), 24);
+        let many: Vec<_> = (0..20).map(|i| json!({"name": format!("p{i}"), "values": {"lines": 3}})).collect();
+        s.merge(json!({ "presets": many })).unwrap();
+        assert_eq!(s.presets.len(), MAX_PRESETS);
+        let old: Settings = serde_json::from_str(r#"{"opacity": 10}"#).unwrap();
+        assert!(old.presets.is_empty());
     }
 
     #[test]

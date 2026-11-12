@@ -1,4 +1,5 @@
 import { api, on, type Lyrics, type Media, type Settings } from './api';
+import { BUILT_IN, currentLook, sameLook, type Preset } from './presets';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { LogicalSize } from '@tauri-apps/api/dpi';
 import './settings.css';
@@ -12,6 +13,15 @@ app.innerHTML = `
     <span id="nowArtist">Start a song in Spotify, YouTube Music or any player</span>
   </div>
 </header>
+
+<section class="presets">
+  <h2>Presets</h2>
+  <div class="bar">
+    <span id="presetChips" class="chips"></span>
+    <input id="presetName" type="text" maxlength="24" placeholder="Name this look to keep it" />
+    <button class="primary" id="savePreset">Save look</button>
+  </div>
+</section>
 
 <div class="cols">
   <section>
@@ -105,6 +115,7 @@ let s: Settings = {
   idleFade: true,
   offsets: {},
   gameMode: 'clickthrough',
+  presets: [],
 };
 
 let media: Media | null = null;
@@ -128,8 +139,66 @@ function setIfIdle(id: string, value: string) {
   if (document.activeElement !== input) input.value = value;
 }
 
+/** Built-in templates first, then the user's own looks (those can be deleted). */
+function renderPresets() {
+  const box = el('presetChips');
+  box.replaceChildren();
+  const add = (p: Preset, mine: boolean) => {
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (sameLook(s, p.values) ? ' on' : '');
+    const apply = document.createElement('button');
+    apply.className = 'chipbtn';
+    apply.title = mine ? 'Use your saved look' : 'Use this template';
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    dot.style.background = `linear-gradient(135deg, ${String(p.values.glassColor)} 50%, ${String(p.values.fillColor)} 50%)`;
+    apply.append(dot, p.name);
+    apply.addEventListener('click', () => patch(p.values as Partial<Settings>));
+    chip.append(apply);
+    if (mine) {
+      const del = document.createElement('button');
+      del.className = 'chipx';
+      del.textContent = '×';
+      del.title = 'Delete this look';
+      del.addEventListener('click', () => patch({ presets: s.presets.filter((q) => q.name !== p.name) }));
+      chip.append(del);
+    }
+    box.append(chip);
+  };
+  BUILT_IN.forEach((p) => add(p, false));
+  s.presets.forEach((p) => add(p, true));
+}
+
+function saveLook() {
+  const input = el<HTMLInputElement>('presetName');
+  const name = input.value.trim().slice(0, 24);
+  if (!name) {
+    input.focus();
+    return;
+  }
+  const others = s.presets.filter((p) => p.name.toLowerCase() !== name.toLowerCase());
+  if (others.length >= 12) {
+    input.value = '';
+    input.placeholder = 'Limit is 12: delete one first';
+    return;
+  }
+  patch({ presets: [...others, { name, values: currentLook(s) }] });
+  input.value = '';
+  input.placeholder = 'Name this look to keep it';
+}
+el('savePreset').addEventListener('click', saveLook);
+el('presetName').addEventListener('keydown', (e) => {
+  if ((e as KeyboardEvent).key === 'Enter') saveLook();
+});
+
+let presetSig = '';
 function sync() {
   if (!s) return;
+  const sig = JSON.stringify([currentLook(s), s.presets]);
+  if (sig !== presetSig) {
+    presetSig = sig;
+    renderPresets();
+  }
   setIfIdle('opacity', String(s.opacity));
   setIfIdle('opacityNum', String(s.opacity));
   setIfIdle('fontPx', String(s.fontPx));

@@ -36,6 +36,8 @@ export interface Settings {
   offsets: Record<string, number>;
   /** What to do while a fullscreen app (game, fullscreen video) is in front. */
   gameMode: 'off' | 'clickthrough' | 'hide';
+  /** Looks the user saved (appearance settings only). */
+  presets: { name: string; values: Record<string, unknown> }[];
 }
 
 export interface Media {

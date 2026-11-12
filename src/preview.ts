@@ -8,7 +8,7 @@ type Settings = {
   align: 'left' | 'center' | 'right'; lines: 1 | 3 | 5; karaoke: boolean; clickThrough: boolean;
   alwaysOnTop: boolean; firstRunDone: boolean; dynamicColor: boolean; dualSubtitles: boolean;
   romanize: boolean; translateTo: string; startWithWindows: boolean; idleFade: boolean;
-  offsets: Record<string, number>; gameMode: string;
+  offsets: Record<string, number>; gameMode: string; presets: unknown[];
 };
 type Media = {
   key: string; title: string; artist: string; album: string; source: string; playing: boolean;
@@ -24,7 +24,7 @@ const defaults: Settings = {
   subColor: '#b8e7ff', subFontPx: 14, romColor: '#ffffff', romFontPx: 16, outline: true,
   outlineColor: '#000000', outlineWidth: 2, fontFamily: 'sans', align: 'center', lines: 3,
   karaoke: true, clickThrough: false, alwaysOnTop: true, firstRunDone: true, dynamicColor: false,
-  dualSubtitles: true, romanize: false, translateTo: 'en', startWithWindows: false, idleFade: false, offsets: {}, gameMode: 'clickthrough',
+  dualSubtitles: true, romanize: false, translateTo: 'en', startWithWindows: false, idleFade: false, offsets: {}, gameMode: 'clickthrough', presets: [],
 };
 export const previewSettings: Settings = { ...defaults };
 export const previewMedia: Media = {
