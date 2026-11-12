@@ -6,6 +6,7 @@ mod romanize;
 mod settings;
 mod translate;
 mod update;
+mod zorder;
 
 use lyrics::LyricsResult;
 use serde::Deserialize;
@@ -448,6 +449,14 @@ fn spawn_window_loop(app: AppHandle) {
             if !win.is_visible().unwrap_or(false) {
                 continue;
             }
+            // Another topmost window (or an app being activated) can slide over ours: claim the top again about once a second.
+            if tick % 30 == 0 && state.settings.lock().unwrap().always_on_top {
+                #[cfg(windows)]
+                if let Ok(handle) = win.hwnd() {
+                    zorder::raise(handle.0 as usize);
+                }
+            }
+
             let click_through = state.settings.lock().unwrap().click_through || game_lock;
 
             let (hovered, inside_control) = match (
