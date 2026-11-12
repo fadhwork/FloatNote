@@ -9,6 +9,12 @@
   --outline: none;
   --radius: 12px;
   --ctl-h: 72px;
+  --menu-rgb: 36, 40, 58;
+  --menu-alpha: 0.55;
+  --menu-bg:
+    radial-gradient(130% 100% at 0% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
+    radial-gradient(90% 80% at 100% 100%, rgba(255, 255, 255, 0.1), transparent 60%),
+    linear-gradient(160deg, rgba(var(--menu-rgb), 0.94), rgba(var(--menu-rgb), 0.72));
   --glass-bg:
     radial-gradient(130% 100% at 0% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
     radial-gradient(90% 80% at 100% 100%, rgba(255, 255, 255, 0.1), transparent 60%),
@@ -174,15 +180,15 @@ button:focus-visible { box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.7); }
   position: relative;
   isolation: isolate;
 }
-/* Same glass as the lyric panel: same gradient, same opacity. Drawn on a layer so the buttons stay fully opaque. */
+/* Same glass look as the lyric panel, but with its own colour and opacity (the menu only shows on hover). Drawn on a layer so the buttons stay fully opaque. */
 #menu::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background: var(--glass-bg);
-  opacity: var(--panel-alpha);
+  background: var(--menu-bg);
+  opacity: var(--menu-alpha);
   pointer-events: none;
 }
 #timing, #music {

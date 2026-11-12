@@ -13,10 +13,10 @@ pub struct Geometry {
 }
 
 /// Settings a saved look (preset) may contain: appearance only, never behaviour, window or per-song data.
-pub const PRESET_KEYS: [&str; 18] = [
+pub const PRESET_KEYS: [&str; 20] = [
     "opacity", "glassColor", "fontPx", "fontColor", "fillColor", "subColor", "subFontPx", "romColor",
     "romFontPx", "outline", "outlineColor", "outlineWidth", "fontFamily", "align", "lines", "karaoke",
-    "titleColor", "iconColor",
+    "titleColor", "iconColor", "menuColor", "menuOpacity",
 ];
 pub const MAX_PRESETS: usize = 12;
 
@@ -43,6 +43,9 @@ pub struct Settings {
     pub title_color: String,
     /// Colour of the icons and labels of the timing / music menu.
     pub icon_color: String,
+    /// Glass behind the timing / music menu (it only shows on hover, so it has its own look), 0 to 100.
+    pub menu_color: String,
+    pub menu_opacity: u8,
     pub sub_font_px: u32,
     pub rom_color: String,
     pub rom_font_px: u32,
@@ -89,6 +92,8 @@ impl Default for Settings {
             sub_color: "#b8e7ff".into(),
             title_color: "#ffffff".into(),
             icon_color: "#ffffff".into(),
+            menu_color: "#24283a".into(),
+            menu_opacity: 55,
             sub_font_px: 14,
             rom_color: "#ffffff".into(),
             rom_font_px: 16,
@@ -128,6 +133,10 @@ impl Settings {
     fn sanitize(&mut self) {
         let d = Settings::default();
         self.opacity = self.opacity.min(100);
+        self.menu_opacity = self.menu_opacity.min(100);
+        if !valid_color(&self.menu_color) {
+            self.menu_color = d.menu_color.clone();
+        }
         self.font_px = self.font_px.clamp(12, 120);
         self.sub_font_px = self.sub_font_px.clamp(8, 80);
         self.rom_font_px = self.rom_font_px.clamp(8, 80);
@@ -286,6 +295,18 @@ mod tests {
         assert_eq!(s.icon_color, "#ffffff"); // not a hex colour: back to the default
         let old: Settings = serde_json::from_str(r#"{"opacity": 10}"#).unwrap();
         assert_eq!(old.title_color, "#ffffff");
+    }
+
+    #[test]
+    fn menu_glass_defaults_and_validates() {
+        let mut s = Settings::default();
+        assert_eq!((s.menu_color.as_str(), s.menu_opacity), ("#24283a", 55));
+        s.merge(json!({"menuColor": "#102030", "menuOpacity": 90})).unwrap();
+        assert_eq!((s.menu_color.as_str(), s.menu_opacity), ("#102030", 90));
+        s.merge(json!({"menuColor": "blue"})).unwrap();
+        assert_eq!(s.menu_color, "#24283a");
+        let old: Settings = serde_json::from_str(r#"{"opacity": 10}"#).unwrap();
+        assert_eq!(old.menu_opacity, 55);
     }
 
     #[test]

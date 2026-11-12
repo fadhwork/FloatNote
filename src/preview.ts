@@ -3,7 +3,7 @@ export const previewMode = typeof window !== 'undefined' && new URLSearchParams(
 
 type Settings = {
   opacity: number; glassColor: string; fontPx: number; fontColor: string; fillColor: string;
-  subColor: string; titleColor: string; iconColor: string; subFontPx: number; romColor: string; romFontPx: number; outline: boolean;
+  subColor: string; titleColor: string; iconColor: string; menuColor: string; menuOpacity: number; subFontPx: number; romColor: string; romFontPx: number; outline: boolean;
   outlineColor: string; outlineWidth: number; fontFamily: 'sans' | 'display' | 'serif' | 'mono';
   align: 'left' | 'center' | 'right'; lines: 1 | 3 | 5; karaoke: boolean; clickThrough: boolean;
   alwaysOnTop: boolean; firstRunDone: boolean; dynamicColor: boolean; dualSubtitles: boolean;
@@ -21,7 +21,7 @@ type Lyrics = {
 
 const defaults: Settings = {
   opacity: 35, glassColor: '#24283a', fontPx: 30, fontColor: '#ffffff', fillColor: '#7dd3fc',
-  subColor: '#b8e7ff', titleColor: '#ffffff', iconColor: '#ffffff', subFontPx: 14, romColor: '#ffffff', romFontPx: 16, outline: true,
+  subColor: '#b8e7ff', titleColor: '#ffffff', iconColor: '#ffffff', menuColor: '#24283a', menuOpacity: 55, subFontPx: 14, romColor: '#ffffff', romFontPx: 16, outline: true,
   outlineColor: '#000000', outlineWidth: 2, fontFamily: 'sans', align: 'center', lines: 3,
   karaoke: true, clickThrough: false, alwaysOnTop: true, firstRunDone: true, dynamicColor: false,
   dualSubtitles: true, romanize: false, translateTo: 'en', startWithWindows: false, idleFade: false, offsets: {}, gameMode: 'clickthrough', presets: [],

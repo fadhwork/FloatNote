@@ -16,6 +16,9 @@ export interface Settings {
   titleColor: string;
   /** Colour of the icons and labels of the timing / music menu. */
   iconColor: string;
+  /** Glass behind the timing / music menu, 0 to 100 opacity. */
+  menuColor: string;
+  menuOpacity: number;
   subFontPx: number;
   romColor: string;
   romFontPx: number;

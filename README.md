@@ -50,7 +50,7 @@ When automatic lookup cannot find lyrics, FloatNote shows a **Retry lookup** but
 | Shortcut / Action | Function |
 | :--- | :--- |
 | **Ctrl + Alt + L** | Toggle Click-Through Lock |
-| **Hover Overlay** | One glass menu with the timing buttons (±1 s, ±3 s, ±10 s) on top and the music and window controls below; it stays clickable while the HUD is click-through |
+| **Hover Overlay** | One glass menu (its own color and opacity in Settings) with the timing buttons (±1 s, ±3 s, ±10 s) on top and the music and window controls below; it stays clickable while the HUD is click-through |
 | **Drag Grip (Top-Right)** | Reposition the HUD |
 | **Resize Grip (Bottom-Right)** | Resize window dimensions |
 | **System Tray Icon** | Access Settings, toggle lyrics visibility, or reset position |

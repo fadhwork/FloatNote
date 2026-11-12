@@ -49,6 +49,13 @@ app.innerHTML = `
       <div class="ctl color-slider"><input id="subFontPx" type="range" min="8" max="80" /><input id="subFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Translation text size in px" /><label class="color-pick" title="Translation text colour"><input id="subColor" type="color" aria-label="Translation text colour" /></label></div></div>
     <div class="row slider-color"><label for="romFontPx">Romanize</label>
       <div class="ctl color-slider"><input id="romFontPx" type="range" min="8" max="80" /><input id="romFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Romanization text size in px" /><label class="color-pick" title="Sing-along text colour"><input id="romColor" type="color" aria-label="Romanization text colour" /></label></div></div>
+    <div class="row slider-color"><label for="menuOpacity">Menu Glass</label>
+      <div class="ctl color-slider">
+        <input id="menuOpacity" type="range" min="0" max="100" />
+        <input id="menuOpacityNum" class="num" type="number" min="0" max="100" step="1" aria-label="Menu glass opacity" />
+        <label class="color-pick" title="Menu glass colour"><input id="menuColor" type="color" aria-label="Menu glass colour" /></label>
+      </div>
+    </div>
     <div class="row"><span class="lbl">Title &amp; icons</span><div class="ctl"><label class="color-pick" title="Song / artist title colour"><input id="titleColor" type="color" aria-label="Title colour" /></label><label class="color-pick" title="Menu icon colour"><input id="iconColor" type="color" aria-label="Icon colour" /></label></div></div>
     <div class="row"><label for="karaoke">Karaoke</label><div class="ctl"><label class="switch"><input id="karaoke" type="checkbox" /><span></span></label><label class="color-pick" title="Sweep colour"><input id="fillColor" type="color" aria-label="Sweep colour" /></label></div></div>
   </section>
@@ -97,6 +104,8 @@ let s: Settings = {
   subColor: '#b8e7ff',
   titleColor: '#ffffff',
   iconColor: '#ffffff',
+  menuColor: '#24283a',
+  menuOpacity: 55,
   subFontPx: 14,
   romColor: '#ffffff',
   romFontPx: 16,
@@ -218,6 +227,9 @@ function sync() {
   setColor('fillColor', s.fillColor);
   setColor('subColor', s.subColor);
   setColor('titleColor', s.titleColor);
+  setColor('menuColor', s.menuColor);
+  setIfIdle('menuOpacity', String(s.menuOpacity));
+  setIfIdle('menuOpacityNum', String(s.menuOpacity));
   setColor('iconColor', s.iconColor);
   setColor('romColor', s.romColor);
   setColor('outlineColor', s.outlineColor);
@@ -315,6 +327,7 @@ function bindNumber(
 }
 
 bindNumber('opacity', 'opacityNum', 0, 100, (v) => ({ opacity: Math.round(v) }), () => s.opacity);
+bindNumber('menuOpacity', 'menuOpacityNum', 0, 100, (v) => ({ menuOpacity: Math.round(v) }), () => s.menuOpacity);
 bindNumber('fontPx', 'fontPxNum', 12, 120, (v) => ({ fontPx: Math.round(v) }), () => s.fontPx);
 bindNumber('subFontPx', 'subFontPxNum', 8, 80, (v) => ({ subFontPx: Math.round(v) }), () => s.subFontPx);
 bindNumber('romFontPx', 'romFontPxNum', 8, 80, (v) => ({ romFontPx: Math.round(v) }), () => s.romFontPx);
@@ -328,7 +341,7 @@ function setColor(id: string, value: string) {
   if (input.value.toLowerCase() !== value.toLowerCase()) input.value = value;
 }
 
-const bindColor = (id: string, key: 'glassColor' | 'fontColor' | 'fillColor' | 'outlineColor' | 'subColor' | 'romColor' | 'titleColor' | 'iconColor') => {
+const bindColor = (id: string, key: 'glassColor' | 'fontColor' | 'fillColor' | 'outlineColor' | 'subColor' | 'romColor' | 'titleColor' | 'iconColor' | 'menuColor') => {
   const input = el<HTMLInputElement>(id);
   let timer = 0;
   input.addEventListener('focus', () => {
@@ -372,6 +385,7 @@ bindColor('outlineColor', 'outlineColor');
 bindColor('subColor', 'subColor');
 bindColor('romColor', 'romColor');
 bindColor('titleColor', 'titleColor');
+bindColor('menuColor', 'menuColor');
 bindColor('iconColor', 'iconColor');
 
 bind('karaoke', 'karaoke', (i) => i.checked);

@@ -39,6 +39,9 @@ export function applyTheme(s: Settings): void {
   root.setProperty('--fill-color', s.fillColor);
   root.setProperty('--sub-color', s.subColor);
   root.setProperty('--title-color', s.titleColor);
+  root.setProperty('--menu-alpha', String(s.menuOpacity / 100));
+  const menuRgb = /^#([0-9a-f]{6})$/i.exec(s.menuColor)?.[1]?.match(/.{2}/g)?.map((v) => Number.parseInt(v, 16));
+  if (menuRgb?.length === 3) root.setProperty('--menu-rgb', menuRgb.join(', '));
   root.setProperty('--icon-color', s.iconColor);
   root.setProperty('--sub-font-px', `${s.subFontPx}px`);
   root.setProperty('--rom-color', s.romColor);

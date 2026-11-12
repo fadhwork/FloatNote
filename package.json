@@ -1,6 +1,6 @@
 {
   "name": "floatnote",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "FloatNote - floating, click-through synced lyrics overlay for Windows",
   "scripts": {
     "dev": "vite",

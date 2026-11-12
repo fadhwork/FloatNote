@@ -4,7 +4,7 @@ import type { Settings } from './api';
 export const LOOK_KEYS = [
   'opacity', 'glassColor', 'fontPx', 'fontColor', 'fillColor', 'subColor', 'subFontPx', 'romColor',
   'romFontPx', 'outline', 'outlineColor', 'outlineWidth', 'fontFamily', 'align', 'lines', 'karaoke',
-  'titleColor', 'iconColor',
+  'titleColor', 'iconColor', 'menuColor', 'menuOpacity',
 ] as const;
 
 export type LookValues = Record<string, unknown>;
@@ -22,6 +22,7 @@ export const BUILT_IN: Preset[] = [
       subColor: '#b8e7ff', subFontPx: 14, romColor: '#ffffff', romFontPx: 16, outline: true,
       outlineColor: '#000000', outlineWidth: 2, fontFamily: 'sans', align: 'center', lines: 3, karaoke: true,
       titleColor: '#b8e7ff', iconColor: '#ffffff',
+      menuColor: '#24283a', menuOpacity: 55,
     },
   },
   {
@@ -31,6 +32,7 @@ export const BUILT_IN: Preset[] = [
       subColor: '#e5e7eb', subFontPx: 13, romColor: '#e5e7eb', romFontPx: 14, outline: true,
       outlineColor: '#000000', outlineWidth: 3, fontFamily: 'sans', align: 'center', lines: 1, karaoke: true,
       titleColor: '#e5e7eb', iconColor: '#ffffff',
+      menuColor: '#000000', menuOpacity: 45,
     },
   },
   {
@@ -40,6 +42,7 @@ export const BUILT_IN: Preset[] = [
       subColor: '#c4b5fd', subFontPx: 16, romColor: '#fbcfe8', romFontPx: 18, outline: true,
       outlineColor: '#12002b', outlineWidth: 3, fontFamily: 'display', align: 'center', lines: 5, karaoke: true,
       titleColor: '#c4b5fd', iconColor: '#f5f3ff',
+      menuColor: '#1a1033', menuOpacity: 60,
     },
   },
   {
@@ -49,6 +52,7 @@ export const BUILT_IN: Preset[] = [
       subColor: '#d6c8a8', subFontPx: 14, romColor: '#e6d7b8', romFontPx: 16, outline: true,
       outlineColor: '#000000', outlineWidth: 2, fontFamily: 'serif', align: 'center', lines: 3, karaoke: true,
       titleColor: '#d6c8a8', iconColor: '#f3e9d2',
+      menuColor: '#0b0b0f', menuOpacity: 65,
     },
   },
   {
@@ -58,6 +62,7 @@ export const BUILT_IN: Preset[] = [
       subColor: '#475569', subFontPx: 14, romColor: '#334155', romFontPx: 16, outline: false,
       outlineColor: '#ffffff', outlineWidth: 0, fontFamily: 'sans', align: 'center', lines: 3, karaoke: true,
       titleColor: '#475569', iconColor: '#1f2430',
+      menuColor: '#f5f1e8', menuOpacity: 85,
     },
   },
   {
@@ -67,6 +72,7 @@ export const BUILT_IN: Preset[] = [
       subColor: '#d1d5db', subFontPx: 12, romColor: '#d1d5db', romFontPx: 12, outline: true,
       outlineColor: '#000000', outlineWidth: 3, fontFamily: 'mono', align: 'left', lines: 1, karaoke: true,
       titleColor: '#d1d5db', iconColor: '#ffffff',
+      menuColor: '#000000', menuOpacity: 40,
     },
   },
 ];
