@@ -335,3 +335,18 @@ body.drag-over {
   pointer-events: none;
   transition: opacity 0.9s ease;
 }
+
+/* Resize from every edge: invisible strips along the window border (corners are a little bigger).
+   They are not hit regions, so with click-through on the HUD stays fully click-through. */
+.edge { position: fixed; z-index: 3; }
+.edge.n { top: 0; left: 14px; right: 14px; height: 6px; cursor: ns-resize; }
+.edge.s { bottom: 0; left: 14px; right: 14px; height: 5px; cursor: ns-resize; }
+.edge.e { right: 0; top: 14px; bottom: 14px; width: 6px; cursor: ew-resize; }
+.edge.w { left: 0; top: 14px; bottom: 14px; width: 6px; cursor: ew-resize; }
+.edge.nw { top: 0; left: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+.edge.se { bottom: 0; right: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+.edge.ne { top: 0; right: 0; width: 14px; height: 14px; cursor: nesw-resize; }
+.edge.sw { bottom: 0; left: 0; width: 14px; height: 14px; cursor: nesw-resize; }
+/* the glass's own bottom edge, clear of the resize grip in the corner */
+.edge.gs { position: absolute; bottom: 0; left: 14px; right: 44px; height: 5px; cursor: ns-resize; }
+body.locked .edge { display: none; }

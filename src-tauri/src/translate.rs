@@ -5,6 +5,7 @@
 //! line-by-line when a batch does not line up, caches per song and language, and reports errors.
 
 use crate::lyrics::fnv1a;
+use crate::throttle::dedupe;
 use serde_json::Value;
 use std::{fs, path::Path};
 
@@ -46,18 +47,11 @@ fn base_lang(code: &str) -> String {
 }
 
 async fn request(client: &reqwest::Client, text: &str, target: &str) -> Result<Value, String> {
-    let resp = client
-        .get("https://translate.googleapis.com/translate_a/single")
-        .query(&[("client", "gtx"), ("sl", "auto"), ("tl", target), ("dt", "t"), ("q", text)])
-        .send()
-        .await
-        .map_err(|e| format!("network error: {e}"))?;
-    if !resp.status().is_success() {
-        return Err(format!("translation service returned {}", resp.status()));
-    }
-    resp.json::<Value>()
-        .await
-        .map_err(|e| format!("bad translation response: {e}"))
+    crate::gtx::get_json(
+        client,
+        &[("client", "gtx"), ("sl", "auto"), ("tl", target), ("dt", "t"), ("q", text)],
+    )
+    .await
 }
 
 async fn translate_single(client: &reqwest::Client, text: &str, target: &str) -> Result<String, String> {
@@ -108,16 +102,21 @@ pub async fn translate_lines(
         .take(MAX_LINES)
         .collect();
 
+    // Repeated lines (choruses) are asked about once.
+    let texts: Vec<&str> = work.iter().map(|&i| lines[i].trim()).collect();
+    let (uniq, which) = dedupe(&texts);
+    let mut done = vec![String::new(); uniq.len()];
+
     let mut batches: Vec<Vec<usize>> = Vec::new();
     let mut cur: Vec<usize> = Vec::new();
     let mut chars = 0usize;
-    for i in work {
-        let len = lines[i].len();
+    for (u, text) in uniq.iter().enumerate() {
+        let len = text.len();
         if !cur.is_empty() && (cur.len() >= BATCH_LINES || chars + len > BATCH_CHARS) {
             batches.push(std::mem::take(&mut cur));
             chars = 0;
         }
-        cur.push(i);
+        cur.push(u);
         chars += len;
     }
     if !cur.is_empty() {
@@ -125,9 +124,16 @@ pub async fn translate_lines(
     }
 
     let mut first = true;
+    let mut failure: Option<String> = None;
     for batch in batches {
-        let text = batch.iter().map(|&i| lines[i].trim()).collect::<Vec<_>>().join("\n");
-        let val = request(client, &text, target).await?; // a failing request is an error, not silence
+        let text = batch.iter().map(|&u| uniq[u]).collect::<Vec<_>>().join("\n");
+        let val = match request(client, &text, target).await {
+            Ok(v) => v,
+            Err(e) => {
+                failure = Some(e); // rate limited or offline: stop asking, keep what we already have
+                break;
+            }
+        };
         match parse_batch(&val, batch.len()) {
             Some((translated, detected)) => {
                 if first && base_lang(&detected) == base_lang(target) {
@@ -136,22 +142,39 @@ pub async fn translate_lines(
                     return Ok(out);
                 }
                 for (slot, t) in batch.iter().zip(translated) {
-                    out[*slot] = t;
+                    done[*slot] = t;
                 }
             }
             None => {
                 // The batch did not line up: translate it line by line instead.
-                for &i in &batch {
-                    if let Ok(t) = translate_single(client, lines[i].trim(), target).await {
-                        out[i] = t;
+                for &u in &batch {
+                    match translate_single(client, uniq[u], target).await {
+                        Ok(t) => done[u] = t,
+                        Err(e) => {
+                            failure = Some(e);
+                            break;
+                        }
                     }
+                }
+                if failure.is_some() {
+                    break;
                 }
             }
         }
         first = false;
     }
-    let _ = write_cache(&path, &out);
-    Ok(out)
+    for (k, &i) in work.iter().enumerate() {
+        out[i] = done[which[k]].clone();
+    }
+    match failure {
+        None => {
+            let _ = write_cache(&path, &out);
+            Ok(out)
+        }
+        Some(e) if out.iter().all(|s| s.is_empty()) => Err(e),
+        // Partly done: show it now, but do not cache it, so the next load fills the gaps.
+        Some(_) => Ok(out),
+    }
 }
 
 fn write_cache(path: &Path, out: &[String]) -> std::io::Result<()> {

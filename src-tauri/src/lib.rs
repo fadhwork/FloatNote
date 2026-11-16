@@ -1,10 +1,12 @@
 mod fullscreen;
+mod gtx;
 mod lrc;
 mod lyrics;
 mod playback;
 mod media;
 mod romanize;
 mod settings;
+mod throttle;
 mod translate;
 mod update;
 mod zorder;

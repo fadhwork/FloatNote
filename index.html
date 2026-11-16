@@ -15,6 +15,8 @@
       <button id="retryLyrics" class="retry ctl" data-hit type="button" hidden>Retry lookup</button>
       <div id="handle" class="ctl" data-hit title="Drag to move"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div id="grip" class="ctl" data-hit title="Drag to resize"></div>
+      <!-- bottom edge of the glass itself (the window edge is below the menu) -->
+      <div class="edge gs" data-dir="South"></div>
       <div id="toast"></div>
     </div>
 
@@ -47,6 +49,12 @@
       </div>
       </div>
     </div>
+
+    <!-- Resize from any edge or corner of the window: the glass and the menu area below it. -->
+    <div class="edge n" data-dir="North"></div><div class="edge s" data-dir="South"></div>
+    <div class="edge e" data-dir="East"></div><div class="edge w" data-dir="West"></div>
+    <div class="edge nw" data-dir="NorthWest"></div><div class="edge ne" data-dir="NorthEast"></div>
+    <div class="edge sw" data-dir="SouthWest"></div><div class="edge se" data-dir="SouthEast"></div>
 
     <script type="module" src="/src/overlay.ts"></script>
   </body>

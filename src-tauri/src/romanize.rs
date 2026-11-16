@@ -7,6 +7,7 @@
 //! not line up, and cached per song.
 
 use crate::lyrics::fnv1a;
+use crate::throttle::dedupe;
 use serde_json::Value;
 use std::{fs, path::Path};
 
@@ -103,16 +104,11 @@ fn clean(s: &str) -> String {
 }
 
 async fn request(client: &reqwest::Client, text: &str, source: &str) -> Result<Value, String> {
-    let resp = client
-        .get("https://translate.googleapis.com/translate_a/single")
-        .query(&[("client", "gtx"), ("sl", source), ("tl", "en"), ("dt", "t"), ("dt", "rm"), ("q", text)])
-        .send()
-        .await
-        .map_err(|e| format!("network error: {e}"))?;
-    if !resp.status().is_success() {
-        return Err(format!("romanization service returned {}", resp.status()));
-    }
-    resp.json::<Value>().await.map_err(|e| format!("bad romanization response: {e}"))
+    crate::gtx::get_json(
+        client,
+        &[("client", "gtx"), ("sl", source), ("tl", "en"), ("dt", "t"), ("dt", "rm"), ("q", text)],
+    )
+    .await
 }
 
 fn cache_path(dir: &Path, key: &str, lines: &[String]) -> std::path::PathBuf {
@@ -149,16 +145,21 @@ pub async fn romanize_lines(
         .take(MAX_LINES)
         .collect();
 
+    // Repeated lines (choruses) are asked about once.
+    let texts: Vec<&str> = work.iter().map(|&i| lines[i].trim()).collect();
+    let (uniq, which) = dedupe(&texts);
+    let mut done = vec![String::new(); uniq.len()];
+
     let mut batches: Vec<Vec<usize>> = Vec::new();
     let mut cur: Vec<usize> = Vec::new();
     let mut chars = 0usize;
-    for i in work {
-        let len = lines[i].len();
+    for (u, text) in uniq.iter().enumerate() {
+        let len = text.len();
         if !cur.is_empty() && (cur.len() >= BATCH_LINES || chars + len > BATCH_CHARS) {
             batches.push(std::mem::take(&mut cur));
             chars = 0;
         }
-        cur.push(i);
+        cur.push(u);
         chars += len;
     }
     if !cur.is_empty() {
@@ -167,27 +168,49 @@ pub async fn romanize_lines(
 
     let mut sample: Option<String> = None;
     let sent = batches.iter().map(|b| b.len()).sum::<usize>();
+    let mut failure: Option<String> = None;
     for batch in batches {
-        let text = batch.iter().map(|&i| lines[i].trim()).collect::<Vec<_>>().join("\n");
-        let val = request(client, &text, source).await?;
+        let text = batch.iter().map(|&u| uniq[u]).collect::<Vec<_>>().join("\n");
+        let val = match request(client, &text, source).await {
+            Ok(v) => v,
+            Err(e) => {
+                failure = Some(e); // rate limited or offline: stop asking, keep what we already have
+                break;
+            }
+        };
         if sample.is_none() {
             sample = Some(val.to_string().chars().take(3000).collect());
         }
         match split_batch(&parse_translit(&val, ""), batch.len()) {
             Some(reads) => {
                 for (slot, r) in batch.iter().zip(reads) {
-                    out[*slot] = r;
+                    done[*slot] = r;
                 }
             }
             None => {
                 // The batch did not line up: ask line by line instead.
-                for &i in &batch {
-                    if let Ok(v) = request(client, lines[i].trim(), source).await {
-                        out[i] = clean(&parse_translit(&v, " "));
+                for &u in &batch {
+                    match request(client, uniq[u], source).await {
+                        Ok(v) => done[u] = clean(&parse_translit(&v, " ")),
+                        Err(e) => {
+                            failure = Some(e);
+                            break;
+                        }
                     }
+                }
+                if failure.is_some() {
+                    break;
                 }
             }
         }
+    }
+    for (k, &i) in work.iter().enumerate() {
+        out[i] = done[which[k]].clone();
+    }
+
+    if let Some(e) = failure {
+        // Partly done is still useful, but it is not cached, so the next load fills the gaps.
+        return if out.iter().all(|s| s.is_empty()) { Err(e) } else { Ok(out) };
     }
 
     // Do not cache an empty result: it would hide the readings until the cache is deleted.

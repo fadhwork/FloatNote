@@ -41,14 +41,6 @@ app.innerHTML = `
         <label class="color-pick" title="Glass colour"><input id="glassColor" type="color" aria-label="Glass colour" /></label>
       </div>
     </div>
-    <div class="row slider-color"><label for="fontPx">Lyric</label>
-      <div class="ctl color-slider"><input id="fontPx" type="range" min="14" max="72" /><input id="fontPxNum" class="num" type="number" min="12" max="120" step="1" aria-label="Text size in px" /><label class="color-pick" title="Text colour"><input id="fontColor" type="color" aria-label="Text colour" /></label></div></div>
-    <div class="row slider-color"><label for="outlineWidth">Outline</label>
-      <div class="ctl color-slider"><input id="outlineWidth" type="range" min="0" max="6" step="0.5" /><input id="outlineWidthNum" class="num" type="number" min="0" max="6" step="0.5" aria-label="Outline size" /><label class="color-pick" title="Outline colour"><input id="outlineColor" type="color" aria-label="Outline colour" /></label></div></div>
-    <div class="row slider-color"><label for="subFontPx">Translation</label>
-      <div class="ctl color-slider"><input id="subFontPx" type="range" min="8" max="80" /><input id="subFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Translation text size in px" /><label class="color-pick" title="Translation text colour"><input id="subColor" type="color" aria-label="Translation text colour" /></label></div></div>
-    <div class="row slider-color"><label for="romFontPx">Romanize</label>
-      <div class="ctl color-slider"><input id="romFontPx" type="range" min="8" max="80" /><input id="romFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Romanization text size in px" /><label class="color-pick" title="Sing-along text colour"><input id="romColor" type="color" aria-label="Romanization text colour" /></label></div></div>
     <div class="row slider-color"><label for="menuOpacity">Menu Glass</label>
       <div class="ctl color-slider">
         <input id="menuOpacity" type="range" min="0" max="100" />
@@ -56,7 +48,15 @@ app.innerHTML = `
         <label class="color-pick" title="Menu glass colour"><input id="menuColor" type="color" aria-label="Menu glass colour" /></label>
       </div>
     </div>
+    <div class="row slider-color"><label for="fontPx">Lyric</label>
+      <div class="ctl color-slider"><input id="fontPx" type="range" min="14" max="72" /><input id="fontPxNum" class="num" type="number" min="12" max="120" step="1" aria-label="Text size in px" /><label class="color-pick" title="Text colour"><input id="fontColor" type="color" aria-label="Text colour" /></label></div></div>
+    <div class="row slider-color"><label for="outlineWidth">Outline</label>
+      <div class="ctl color-slider"><input id="outlineWidth" type="range" min="0" max="6" step="0.5" /><input id="outlineWidthNum" class="num" type="number" min="0" max="6" step="0.5" aria-label="Outline size" /><label class="color-pick" title="Outline colour"><input id="outlineColor" type="color" aria-label="Outline colour" /></label></div></div>
     <div class="row"><span class="lbl">Title &amp; icons</span><div class="ctl"><label class="color-pick" title="Song / artist title colour"><input id="titleColor" type="color" aria-label="Title colour" /></label><label class="color-pick" title="Menu icon colour"><input id="iconColor" type="color" aria-label="Icon colour" /></label></div></div>
+    <div class="row slider-color"><label for="subFontPx">Translation</label>
+      <div class="ctl color-slider"><input id="subFontPx" type="range" min="8" max="80" /><input id="subFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Translation text size in px" /><label class="color-pick" title="Translation text colour"><input id="subColor" type="color" aria-label="Translation text colour" /></label></div></div>
+    <div class="row slider-color"><label for="romFontPx">Romanize</label>
+      <div class="ctl color-slider"><input id="romFontPx" type="range" min="8" max="80" /><input id="romFontPxNum" class="num" type="number" min="8" max="80" step="1" aria-label="Romanization text size in px" /><label class="color-pick" title="Sing-along text colour"><input id="romColor" type="color" aria-label="Romanization text colour" /></label></div></div>
     <div class="row"><label for="karaoke">Karaoke</label><div class="ctl"><label class="switch"><input id="karaoke" type="checkbox" /><span></span></label><label class="color-pick" title="Sweep colour"><input id="fillColor" type="color" aria-label="Sweep colour" /></label></div></div>
   </section>
 

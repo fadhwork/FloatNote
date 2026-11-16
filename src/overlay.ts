@@ -403,6 +403,10 @@ if (previewMode) {
     const win = getCurrentWindow();
     $('handle').addEventListener('mousedown', (e) => e.button === 0 && void win.startDragging());
     $('grip').addEventListener('mousedown', (e) => e.button === 0 && void win.startResizeDragging('SouthEast'));
+    type Dir = Parameters<typeof win.startResizeDragging>[0];
+    document.querySelectorAll<HTMLElement>('.edge').forEach((edge) =>
+      edge.addEventListener('mousedown', (e) => e.button === 0 && void win.startResizeDragging(edge.dataset.dir as Dir)),
+    );
   });
 }
 $('lock').addEventListener('click', () => void api.update({ clickThrough: true }));
