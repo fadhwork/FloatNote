@@ -277,11 +277,16 @@ function fitMarquee() {
 }
 new ResizeObserver(() => fitMarquee()).observe(el('nowTitleBox'));
 
-/** The settings window is exactly as tall as its content: it ends right below the credit line. */
+/** The settings window starts exactly as tall as its content (it ends right below the credit line).
+ *  Once you drag its edges to another size, that size is yours and it stops fitting itself. */
 let fittedH = 0;
+let userSized = false;
+window.addEventListener('resize', () => {
+  if (fittedH && Math.abs(window.innerHeight - fittedH) > 3) userSized = true;
+});
 new ResizeObserver(() => {
   const h = Math.ceil(app.getBoundingClientRect().height);
-  if (h < 200 || h === fittedH) return;
+  if (userSized || h < 200 || h === fittedH) return;
   fittedH = h;
   void getCurrentWindow().setSize(new LogicalSize(window.innerWidth, h)).catch(() => {});
 }).observe(app);
